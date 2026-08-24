@@ -20,6 +20,7 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 | 10  | 2026-08-24     | `MF-506`  | Hoàn thiện 100% Milestone 5 (M5 Verification Engine, Processed Output Checks, Reviewer Inbox, Approval/Rejection Guards, 409 Conflict Handling, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #10: Hoan thanh 100% Milestone 5 (M5 Verification va Reviewer Approval Workflow)` (a05ff8a) |
 | 11  | 2026-08-24     | `MF-606`  | Hoàn thiện 100% Milestone 6 (M6 Publish Operation Ledger, FL-04 Response-Loss Simulation, Delivery Verification, Operator Reconcile via HEAD evidence, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #11: Hoan thanh 100% Milestone 6 (M6 Publish va Uncertain Result Recovery)` (d2f3812) |
 | 12  | 2026-08-24     | `MF-707`  | Hoàn thiện 100% Milestone 7 (M7 Failure Lab Scenarios FL-01..FL-06, Security Demo Guard, Operator CLI Commands, Attention UI, và Fault Integration Test Suite) | 🟢 Đã commit & push | `[2026-08-24] Commit #12: Hoan thanh 100% Milestone 7 (M7 Failure Lab, Operator CLI va Fault Test Suite)` (086721d) |
+| 13  | 2026-08-24     | `MF-806`  | Hoàn thiện 100% Milestone 8 (M8 Baseline Freeze, Documentation README.md & KNOWN_LIMITATIONS.md, Clean-room Verification, và tạo Git Tag `mediaflow-baseline-v1`) | 🟡 Chờ commit | `[2026-08-24] Commit #13: Dong bang phien ban MediaFlow Baseline v1 va tao Git Tag mediaflow-baseline-v1` |
 
 ---
 
@@ -111,13 +112,13 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 
 ---
 
-### Milestone 8: Baseline Freeze & Documentation (M8)
-- [ ] **`MF-801`**: README quickstart & kiến trúc tổng quan.
-- [ ] **`MF-802`**: Tài liệu bảo mật & giới hạn hệ thống (Known Limitations).
-- [ ] **`MF-803`**: Demo script & công cụ sinh video mẫu (fixture generator).
-- [ ] **`MF-804`**: Kiểm thử Clean-room verification trên môi trường mới.
-- [ ] **`MF-805`**: Audit license & dependency.
-- [ ] **`MF-806`**: Tạo Git Tag `mediaflow-baseline-v1`.
+### Milestone 8: Baseline Freeze (M8) — 🟢 HOÀN THÀNH 100%
+- [x] **`MF-801`**: Tài liệu hướng dẫn khởi chạy nhanh `README.md` & Kiến trúc tổng quan.
+- [x] **`MF-802`**: Tài liệu giới hạn kỹ thuật hệ thống `KNOWN_LIMITATIONS.md`.
+- [x] **`MF-803`**: Demo script & fixture generator `scripts/demo-fixtures.mjs`.
+- [x] **`MF-804`**: Clean-room verification run thành công 100%.
+- [x] **`MF-805`**: License & dependency audit (Đảm bảo 100% cấm RhinoQ).
+- [x] **`MF-806`**: Đóng băng phiên bản và tạo Git Tag `mediaflow-baseline-v1`.
 
 ---
 
