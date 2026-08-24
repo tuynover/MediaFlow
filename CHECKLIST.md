@@ -13,7 +13,7 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 | 03  | 2026-08-24     | `MF-101`  | Triển khai Shared Packages (contracts, domain, database 13 schemas), NestJS Auth & Tenant Isolation Modules, và React Web UI Switcher | 🟢 Đã commit & push | `[2026-08-24] Commit #3: Trien khai Shared Packages, Database Schema, NestJS Auth va Tenant Isolation` (02f8e91) |
 | 04  | 2026-08-24     | `MF-007`  | Cấu hình GitHub Actions CI Workflow (.github/workflows/ci.yml) và bộ chấm điểm code tự động AI Evaluator Scorecard | 🟢 Đã commit & push | `[2026-08-24] Commit #4: Them GitHub Actions CI workflow va cong cu danh gia code quality scorecard` (055bcb8) |
 | 05  | 2026-08-24     | `MF-008`  | Hoàn thiện 100% Milestone 0 (M0 Baseline Infrastructure, Vitest unit test suite, wait-for-services & demo-fixtures scripts) | 🟢 Đã commit & push | `[2026-08-24] Commit #5: Hoan thanh 100% Milestone 0 (M0 Baseline Infrastructure & Test Suite)` (a45e455) |
-| 06  | 2026-08-24     | `MF-106`  | Hoàn thiện 100% Milestone 1 (M1 Auth, Tenant Scope & Projects API, Cursor Pagination, Tenant Isolation Integration Test Suite) | 🟡 Chờ commit | `[2026-08-24] Commit #6: Hoan thanh 100% Milestone 1 (M1 Auth, Tenant Scope & Projects)` |
+| 06  | 2026-08-24     | `MF-106`  | Hoàn thiện 100% Milestone 1 (M1 Auth, Tenant Scope & Projects API, Cursor Pagination, Tenant Isolation Integration Test Suite) | 🟢 Đã commit & push | `[2026-08-24] Commit #6: Hoan thanh 100% Milestone 1 (M1 Auth, Tenant Scope & Projects)` (2d8b0e9) |
 
 ---
 
