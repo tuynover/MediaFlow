@@ -18,6 +18,7 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 | 08  | 2026-08-24     | `MF-306`  | Hoàn thiện 100% Milestone 3 (M3 Queue & Outbox Adapter, Transactional Outbox Pattern, SSE Replay Gateway, Operator Inspect API, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #8: Hoan thanh 100% Milestone 3 (M3 Queue, Outbox va Realtime SSE)` (e35ed52) |
 | 09  | 2026-08-24     | `MF-409`  | Hoàn thiện 100% Milestone 4 (M4 FFmpeg Safe Command Engine, ffprobe JSON parser, Thumbnail, 720p/1080p Transcode Profiles, Cooperative Cancellation, Scratch Cleanup, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #9: Hoan thanh 100% Milestone 4 (M4 FFmpeg va Media Processing Pipeline)` (b616102) |
 | 10  | 2026-08-24     | `MF-506`  | Hoàn thiện 100% Milestone 5 (M5 Verification Engine, Processed Output Checks, Reviewer Inbox, Approval/Rejection Guards, 409 Conflict Handling, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #10: Hoan thanh 100% Milestone 5 (M5 Verification va Reviewer Approval Workflow)` (a05ff8a) |
+| 11  | 2026-08-24     | `MF-606`  | Hoàn thiện 100% Milestone 6 (M6 Publish Operation Ledger, FL-04 Response-Loss Simulation, Delivery Verification, Operator Reconcile via HEAD evidence, và Integration Tests) | 🟡 Chờ commit | `[2026-08-24] Commit #11: Hoan thanh 100% Milestone 6 (M6 Publish va Uncertain Result Recovery)` |
 
 ---
 
@@ -88,13 +89,13 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 
 ---
 
-### Milestone 6: Publish & Uncertain Recovery (M6)
-- [ ] **`MF-601`**: Schema `publish_operations` lưu vết idempotency key & fingerprint.
-- [ ] **`MF-602`**: Deterministic copy publisher từ processed bucket ➔ delivery bucket.
-- [ ] **`MF-603`**: Giả lập lỗi mất response (Response-loss simulation).
-- [ ] **`MF-604`**: Delivery verification (HEAD destination & metadata match).
-- [ ] **`MF-605`**: Operator reconcile endpoint `/publish/:operationId/reconcile`.
-- [ ] **`MF-606`**: Publish fault tests.
+### Milestone 6: Publish & Uncertain Recovery (M6) — 🟢 HOÀN THÀNH 100%
+- [x] **`MF-601`**: Schema `publish_operations` lưu vết idempotency key & fingerprint.
+- [x] **`MF-602`**: Deterministic copy publisher từ processed bucket ➔ delivery bucket.
+- [x] **`MF-603`**: Giả lập lỗi mất response (FL-04 Response-loss simulation).
+- [x] **`MF-604`**: Delivery verification (HEAD destination & metadata match).
+- [x] **`MF-605`**: Operator reconcile endpoint `/api/v1/publish/:operationId/reconcile`.
+- [x] **`MF-606`**: Integration test suite `test/integration/publish_reconcile.test.ts`.
 
 ---
 

@@ -5,8 +5,9 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { RunsModule } from './modules/runs/runs.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { ApprovalsModule } from './modules/approvals/approvals.module';
+import { PublishModule } from './modules/publish/publish.module';
 
 @Module({
-  imports: [AuthModule, ProjectsModule, UploadsModule, RunsModule, RealtimeModule, ApprovalsModule],
+  imports: [AuthModule, ProjectsModule, UploadsModule, RunsModule, RealtimeModule, ApprovalsModule, PublishModule],
 })
 export class AppModule {}
