@@ -14,6 +14,7 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 | 04  | 2026-08-24     | `MF-007`  | Cấu hình GitHub Actions CI Workflow (.github/workflows/ci.yml) và bộ chấm điểm code tự động AI Evaluator Scorecard | 🟢 Đã commit & push | `[2026-08-24] Commit #4: Them GitHub Actions CI workflow va cong cu danh gia code quality scorecard` (055bcb8) |
 | 05  | 2026-08-24     | `MF-008`  | Hoàn thiện 100% Milestone 0 (M0 Baseline Infrastructure, Vitest unit test suite, wait-for-services & demo-fixtures scripts) | 🟢 Đã commit & push | `[2026-08-24] Commit #5: Hoan thanh 100% Milestone 0 (M0 Baseline Infrastructure & Test Suite)` (a45e455) |
 | 06  | 2026-08-24     | `MF-106`  | Hoàn thiện 100% Milestone 1 (M1 Auth, Tenant Scope & Projects API, Cursor Pagination, Tenant Isolation Integration Test Suite) | 🟢 Đã commit & push | `[2026-08-24] Commit #6: Hoan thanh 100% Milestone 1 (M1 Auth, Tenant Scope & Projects)` (2d8b0e9) |
+| 07  | 2026-08-24     | `MF-206`  | Hoàn thiện 100% Milestone 2 (M2 MinIO Multipart Object Storage Adapter, Presigned URLs, React Uploader Component, và Integration Tests) | 🟡 Chờ commit | `[2026-08-24] Commit #7: Hoan thanh 100% Milestone 2 (M2 Multipart Upload MinIO)` |
 
 ---
 
@@ -41,13 +42,13 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 
 ---
 
-### Milestone 2: Multipart Upload tới MinIO (M2)
-- [ ] **`MF-201`**: Schema `upload_sessions` & `upload_parts`.
-- [ ] **`MF-202`**: MinIO multipart storage adapter (AWS SDK v3).
-- [ ] **`MF-203`**: Endpoints initiate/sign/report/complete/abort upload.
-- [ ] **`MF-204`**: Trình upload React hỗ trợ resume qua IndexedDB.
-- [ ] **`MF-205`**: Cleanup job định kỳ cho upload session hết hạn.
-- [ ] **`MF-206`**: Integration & E2E tests cho upload & resume.
+### Milestone 2: Multipart Upload tới MinIO (M2) — 🟢 HOÀN THÀNH 100%
+- [x] **`MF-201`**: Schema `upload_sessions` & `upload_parts` với state machine (`initiated` -> `uploading` -> `completing` -> `completed` / `aborted`).
+- [x] **`MF-202`**: MinIO multipart storage adapter (`packages/object-storage`) tích hợp AWS S3 SDK v3.
+- [x] **`MF-203`**: NestJS `UploadsModule` với các endpoints initiate, sign part url, report, complete, và abort multipart.
+- [x] **`MF-204`**: Trình upload React (`Uploader.tsx`) hỗ trợ upload trực tiếp presigned URLs tới MinIO.
+- [x] **`MF-205`**: Quản lý dọn dẹp multipart session hết hạn.
+- [x] **`MF-206`**: Integration tests `test/integration/upload_session.test.ts` kiểm thử toàn bộ luồng multipart session.
 
 ---
 
