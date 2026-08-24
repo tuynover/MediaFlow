@@ -23,9 +23,39 @@ export class ProjectsService {
     return project;
   }
 
-  async listProjects(workspaceId: string): Promise<MediaProject[]> {
+  async listProjects(
+    workspaceId: string,
+    query?: { status?: string; search?: string; cursor?: string; limit?: number }
+  ): Promise<{ projects: MediaProject[]; nextCursor: string | null }> {
     // Tenant Isolation: strictly filter by workspaceId
-    return PROJECTS.filter((p) => p.workspaceId === workspaceId);
+    let filtered = PROJECTS.filter((p) => p.workspaceId === workspaceId);
+
+    if (query?.status) {
+      filtered = filtered.filter((p) => p.status === query.status);
+    }
+
+    if (query?.search) {
+      const searchLower = query.search.toLowerCase();
+      filtered = filtered.filter((p) => p.name.toLowerCase().includes(searchLower));
+    }
+
+    // Sort newest first
+    filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const limit = query?.limit || 20;
+    let startIndex = 0;
+
+    if (query?.cursor) {
+      const cursorIndex = filtered.findIndex((p) => p.id === query.cursor);
+      if (cursorIndex !== -1) {
+        startIndex = cursorIndex + 1;
+      }
+    }
+
+    const paginated = filtered.slice(startIndex, startIndex + limit);
+    const nextCursor = startIndex + limit < filtered.length ? paginated[paginated.length - 1]?.id || null : null;
+
+    return { projects: paginated, nextCursor };
   }
 
   async getProjectById(workspaceId: string, projectId: string): Promise<MediaProject> {
@@ -39,6 +69,14 @@ export class ProjectsService {
         },
       });
     }
+    return project;
+  }
+
+  async updateProjectName(workspaceId: string, projectId: string, newName: string): Promise<MediaProject> {
+    const project = await this.getProjectById(workspaceId, projectId);
+    project.name = newName;
+    project.updatedAt = new Date().toISOString();
+    project.version += 1;
     return project;
   }
 }
