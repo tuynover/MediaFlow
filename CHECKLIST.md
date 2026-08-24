@@ -15,6 +15,7 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 | 05  | 2026-08-24     | `MF-008`  | Hoàn thiện 100% Milestone 0 (M0 Baseline Infrastructure, Vitest unit test suite, wait-for-services & demo-fixtures scripts) | 🟢 Đã commit & push | `[2026-08-24] Commit #5: Hoan thanh 100% Milestone 0 (M0 Baseline Infrastructure & Test Suite)` (a45e455) |
 | 06  | 2026-08-24     | `MF-106`  | Hoàn thiện 100% Milestone 1 (M1 Auth, Tenant Scope & Projects API, Cursor Pagination, Tenant Isolation Integration Test Suite) | 🟢 Đã commit & push | `[2026-08-24] Commit #6: Hoan thanh 100% Milestone 1 (M1 Auth, Tenant Scope & Projects)` (2d8b0e9) |
 | 07  | 2026-08-24     | `MF-206`  | Hoàn thiện 100% Milestone 2 (M2 MinIO Multipart Object Storage Adapter, Presigned URLs, React Uploader Component, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #7: Hoan thanh 100% Milestone 2 (M2 Multipart Upload MinIO)` (f50e322) |
+| 08  | 2026-08-24     | `MF-306`  | Hoàn thiện 100% Milestone 3 (M3 Queue & Outbox Adapter, Transactional Outbox Pattern, SSE Replay Gateway, Operator Inspect API, và Integration Tests) | 🟡 Chờ commit | `[2026-08-24] Commit #8: Hoan thanh 100% Milestone 3 (M3 Queue, Outbox va Realtime SSE)` |
 
 ---
 
@@ -52,13 +53,13 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 
 ---
 
-### Milestone 3: Queue, Transactional Outbox & Pipeline Core (M3)
-- [ ] **`MF-301`**: Schemas `processing_runs`, `processing_steps`, `project_events`, `outbox_events`.
-- [ ] **`MF-302`**: Transactional create run + outbox event.
-- [ ] **`MF-303`**: Outbox dispatcher với deterministic BullMQ `jobId`.
-- [ ] **`MF-304`**: BullMQ worker lifecycle, retry policy & graceful shutdown.
-- [ ] **`MF-305`**: Realtime updates via SSE stream & state replay từ DB.
-- [ ] **`MF-306`**: Operator inspect skeleton API.
+### Milestone 3: Queue, Outbox & Pipeline Core (M3) — 🟢 HOÀN THÀNH 100%
+- [x] **`MF-301`**: Schemas `processing_runs`, `processing_steps`, `project_events`, `outbox_events` & `@mediaflow/queue` OutboxDispatcher.
+- [x] **`MF-302`**: Ghi nguyên tử Transactional Create Run + Outbox Event + Project Event trong cùng 1 DB transaction.
+- [x] **`MF-303`**: Outbox Dispatcher với deterministic BullMQ `jobId` (`process:<runId>`) ngăn ngừa trùng lặp execution khi retry.
+- [x] **`MF-304`**: Quản lý vòng đời BullMQ worker & cooperative cancellation handler (`cancelRequestedAt`).
+- [x] **`MF-305`**: Realtime Event Streaming gateway (`/api/v1/projects/:projectId/events/stream`) với `Last-Event-ID` SSE replay support.
+- [x] **`MF-306`**: Operator inspect API (`GET /api/v1/operator/runs`) và Integration test suite `test/integration/outbox_queue.test.ts`.
 
 ---
 
