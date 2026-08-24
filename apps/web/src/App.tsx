@@ -74,6 +74,9 @@ export default function App() {
 
   useEffect(() => {
     if (currentUser) {
+      // Reset active run/op states when switching tenants to avoid workspace state leaks
+      setActiveRuns({});
+      setPublishOps({});
       fetchProjects();
     }
   }, [currentUser]);
@@ -219,10 +222,12 @@ export default function App() {
 
         {/* Tenant Switcher */}
         <div style={{ marginTop: '20px', background: '#1e293b', padding: '15px', borderRadius: '8px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+          <label htmlFor="seed-user-select" style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
             🔒 Chuyển đổi Tài khoản Seed (Kiểm thử Tenant Isolation):
           </label>
           <select
+            id="seed-user-select"
+            name="seed_user_select"
             value={currentUser?.id}
             onChange={(e) => {
               const selected = seedUsers.find((u) => u.id === e.target.value);
@@ -256,7 +261,12 @@ export default function App() {
         <section style={{ background: '#1e293b', padding: '20px', borderRadius: '8px', marginBottom: '30px' }}>
           <h2 style={{ fontSize: '18px', marginTop: 0, color: '#f8fafc' }}>➕ Tạo Media Project Mới</h2>
           <form onSubmit={handleCreateProject} style={{ display: 'flex', gap: '10px' }}>
+            <label htmlFor="new-project-input" style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}>
+              Tên Project Video
+            </label>
             <input
+              id="new-project-input"
+              name="new_project_name"
               type="text"
               placeholder="Nhập tên project video (ví dụ: TVC Summer Campaign)..."
               value={newProjectName}
@@ -322,18 +332,21 @@ export default function App() {
                           ID: {p.id} | Ngày tạo: {new Date(p.createdAt).toLocaleString('vi-VN')}
                         </div>
                       </div>
-                      <span
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          background: '#334155',
-                          color: '#38bdf8',
-                        }}
-                      >
-                        {p.status}
-                      </span>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>Trạng thái Project:</span>
+                        <span
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            background: '#334155',
+                            color: '#38bdf8',
+                          }}
+                        >
+                          {p.status}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Component Multipart Uploader */}
@@ -368,7 +381,7 @@ export default function App() {
                     {activeRun && (
                       <div style={{ marginTop: '15px', background: '#0f172a', padding: '15px', borderRadius: '6px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
-                          <span>Trạng thái Xử lý: <strong style={{ color: '#38bdf8' }}>{activeRun.status}</strong></span>
+                          <span>Trạng thái Xử lý (Run): <strong style={{ color: '#38bdf8' }}>{activeRun.status}</strong></span>
                           <span>Bước: <code style={{ color: '#f59e0b' }}>{activeRun.currentStep || 'queued'}</code> ({activeRun.progressPercent}%)</span>
                         </div>
                         <div style={{ background: '#334155', borderRadius: '4px', height: '12px', overflow: 'hidden' }}>
@@ -384,7 +397,12 @@ export default function App() {
                             >
                               ✅ Reviewer Approve
                             </button>
+                            <label htmlFor={`reject-reason-${activeRun.id}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}>
+                              Lý do từ chối
+                            </label>
                             <input
+                              id={`reject-reason-${activeRun.id}`}
+                              name={`reject_reason_${activeRun.id}`}
                               type="text"
                               placeholder="Lý do từ chối (10-1000 ký tự)..."
                               value={rejectionReason[activeRun.id] || ''}

@@ -42,14 +42,14 @@ export class RunsService {
       projectId,
       sourceAssetId,
       sequence: RUNS.length + 1,
-      status: 'awaiting_approval',
+      status: 'queued',
       queueJobId,
       attemptCount: 1,
-      progressPercent: 100,
-      currentStep: 'verify_outputs',
+      progressPercent: 0,
+      currentStep: 'probe_source',
       cancelRequestedAt: null,
-      startedAt: new Date().toISOString(),
-      finishedAt: new Date().toISOString(),
+      startedAt: null,
+      finishedAt: null,
       createdAt: new Date().toISOString(),
     };
 
@@ -68,13 +68,31 @@ export class RunsService {
       workspaceId,
       projectId,
       runId,
-      type: 'run.completed',
-      data: { runId, status: 'awaiting_approval', progressPercent: 100 },
+      type: 'run.queued',
+      data: { runId, status: 'queued' },
       occurredAt: new Date().toISOString(),
     });
 
     // Outbox Dispatcher enqueues with deterministic jobId
     await this.dispatcher.dispatchOutbox(OUTBOX);
+
+    // Auto-progress run asynchronously for worker execution simulation
+    setTimeout(() => {
+      run.status = 'awaiting_approval';
+      run.progressPercent = 100;
+      run.currentStep = 'verify_outputs';
+      run.startedAt = new Date().toISOString();
+      run.finishedAt = new Date().toISOString();
+      EVENTS.push({
+        id: EVENTS.length + 1,
+        workspaceId,
+        projectId,
+        runId,
+        type: 'run.completed',
+        data: { runId, status: 'awaiting_approval', progressPercent: 100 },
+        occurredAt: new Date().toISOString(),
+      });
+    }, 100);
 
     return run;
   }

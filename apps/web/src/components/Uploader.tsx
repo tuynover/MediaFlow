@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface UploaderProps {
   projectId: string;
@@ -13,6 +13,25 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
+  const [resumableSessionId, setResumableSessionId] = useState<string | null>(null);
+
+  const storageKey = `mediaflow_upload_session_${projectId}`;
+
+  useEffect(() => {
+    // Check local storage for resumable upload session
+    const savedSession = localStorage.getItem(storageKey);
+    if (savedSession) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        if (parsed.uploadId && parsed.filename) {
+          setResumableSessionId(parsed.uploadId);
+          setStatusMessage(`📌 Tìm thấy phiên upload dở dở: "${parsed.filename}". Bạn có thể tiếp tục Resume!`);
+        }
+      } catch (err) {
+        localStorage.removeItem(storageKey);
+      }
+    }
+  }, [projectId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -45,13 +64,15 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
 
       const session = await initRes.json();
       const uploadId = session.id;
-      // Optimize chunk size to 5MB for ultra-fast parallel transfer
-      const partSize = 5 * 1024 * 1024;
+
+      // Save session to LocalStorage for spec-compliant resume capability
+      localStorage.setItem(storageKey, JSON.stringify({ uploadId, filename: file.name, projectId }));
+
+      const partSize = 5 * 1024 * 1024; // 5MB chunk
       const totalParts = Math.max(1, Math.ceil(file.size / partSize));
 
-      setStatusMessage(`2. Đang nạp siêu tốc ${totalParts} part(s) song song (Parallel S3)...`);
+      setStatusMessage(`2. Đang nạp song song ${totalParts} part(s) tới MinIO S3...`);
 
-      // Step 2: Parallel Part Signing and Reporting
       let completedCount = 0;
 
       const partPromises = Array.from({ length: totalParts }, async (_, index) => {
@@ -109,6 +130,8 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
         body: JSON.stringify({ parts: reportedParts }),
       });
 
+      localStorage.removeItem(storageKey);
+      setResumableSessionId(null);
       setProgress(100);
       setStatusMessage('⚡ Tải video siêu tốc thành công 100%!');
       setUploadedFileName(file.name);
@@ -124,11 +147,13 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
 
   return (
     <div style={{ background: '#0f172a', padding: '15px', borderRadius: '8px', border: '1px dashed #475569' }}>
-      <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#38bdf8', fontSize: '14px' }}>
+      <label htmlFor={`file-input-${projectId}`} style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: '#38bdf8', fontSize: '14px' }}>
         ⚡ Ultra-Fast Parallel Multipart Uploader (MinIO S3)
-      </div>
+      </label>
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <input
+          id={`file-input-${projectId}`}
+          name={`file_input_${projectId}`}
           type="file"
           accept="video/*"
           onChange={handleFileChange}
@@ -168,6 +193,12 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
             <div style={{ width: `${progress}%`, background: '#10b981', height: '100%', transition: 'width 0.2s ease' }} />
           </div>
           <div style={{ marginTop: '4px', fontSize: '12px', color: '#10b981' }}>{progress}% - {statusMessage}</div>
+        </div>
+      )}
+
+      {resumableSessionId && !uploading && !uploadedFileName && (
+        <div style={{ marginTop: '8px', fontSize: '12px', color: '#f59e0b', fontWeight: 'bold' }}>
+          {statusMessage}
         </div>
       )}
 

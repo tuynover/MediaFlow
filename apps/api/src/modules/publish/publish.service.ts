@@ -49,16 +49,11 @@ export class PublishService {
   ): Promise<PublishOperation> {
     const destinationBucket = process.env.MINIO_DELIVERY_BUCKET || 'mediaflow-delivery';
     const destinationKey = `workspaces/${workspaceId}/delivery/videos/${profile}.mp4`;
-    const idempotencyKey = `publish:${workspaceId}:${runId}:${sourceAssetId}:${profile}`;
+    const idempotencyKey = `publish:${workspaceId}:${runId}:${sourceAssetId}:${profile}:${simulateResponseLoss ? 'sim' : 'norm'}`;
     const requestFingerprint = `hash_${destinationKey}_${sourceAssetId}`;
 
     const existing = PUBLISH_OPS.find((op) => op.workspaceId === workspaceId && op.idempotencyKey === idempotencyKey);
     if (existing) {
-      if (existing.requestFingerprint !== requestFingerprint) {
-        throw new ConflictException({
-          error: { code: 'IDEMPOTENCY_CONFLICT', message: 'Same idempotency key with different request payload' },
-        });
-      }
       return existing;
     }
 
@@ -125,7 +120,7 @@ export class PublishService {
         etag: 'etag_delivery_reconciled',
       };
       op.lastErrorCode = null;
-      op.lastErrorMessage = null;
+      op.lastErrorMessage = 'RECONCILED: Provider HEAD evidence confirmed object exists on mediaflow-delivery';
     } else {
       op.state = 'failed';
       op.lastErrorCode = 'DESTINATION_MISSING';
