@@ -1,0 +1,19 @@
+{
+  "name": "@mediaflow/ops",
+  "version": "1.0.0",
+  "private": true,
+  "bin": {
+    "mediaflow": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "mediaflow": "node dist/cli.js"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.0",
+    "typescript": "^5.5.4"
+  }
+}

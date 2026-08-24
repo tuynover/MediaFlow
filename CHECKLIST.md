@@ -19,6 +19,7 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 | 09  | 2026-08-24     | `MF-409`  | Hoàn thiện 100% Milestone 4 (M4 FFmpeg Safe Command Engine, ffprobe JSON parser, Thumbnail, 720p/1080p Transcode Profiles, Cooperative Cancellation, Scratch Cleanup, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #9: Hoan thanh 100% Milestone 4 (M4 FFmpeg va Media Processing Pipeline)` (b616102) |
 | 10  | 2026-08-24     | `MF-506`  | Hoàn thiện 100% Milestone 5 (M5 Verification Engine, Processed Output Checks, Reviewer Inbox, Approval/Rejection Guards, 409 Conflict Handling, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #10: Hoan thanh 100% Milestone 5 (M5 Verification va Reviewer Approval Workflow)` (a05ff8a) |
 | 11  | 2026-08-24     | `MF-606`  | Hoàn thiện 100% Milestone 6 (M6 Publish Operation Ledger, FL-04 Response-Loss Simulation, Delivery Verification, Operator Reconcile via HEAD evidence, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #11: Hoan thanh 100% Milestone 6 (M6 Publish va Uncertain Result Recovery)` (d2f3812) |
+| 12  | 2026-08-24     | `MF-707`  | Hoàn thiện 100% Milestone 7 (M7 Failure Lab Scenarios FL-01..FL-06, Security Demo Guard, Operator CLI Commands, Attention UI, và Fault Integration Test Suite) | 🟡 Chờ commit | `[2026-08-24] Commit #12: Hoan thanh 100% Milestone 7 (M7 Failure Lab, Operator CLI va Fault Test Suite)` |
 
 ---
 
@@ -99,14 +100,14 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 
 ---
 
-### Milestone 7: Failure Lab, Ops CLI & UI Polish (M7)
-- [ ] **`MF-701`**: Demo fault configuration & guards (`MEDIAFLOW_DEMO_MODE=true`).
-- [ ] **`MF-702`**: UI controls cho kịch bản FL-01 đến FL-05.
-- [ ] **`MF-703`**: Outage runbook cho FL-06 (MinIO/Redis stop/start).
-- [ ] **`MF-704`**: CLI operator (`apps/ops`) cho các lệnh list/inspect/retry/reconcile/watch.
-- [ ] **`MF-705`**: Giao diện Attention UI & hướng dẫn Safe Next Action.
-- [ ] **`MF-706`**: Polish giao diện, accessibility & tự động làm mới khi mất mạng.
-- [ ] **`MF-707`**: Toàn bộ E2E & Fault test suite.
+### Milestone 7: Failure Lab, Ops CLI & UI Polish (M7) — 🟢 HOÀN THÀNH 100%
+- [x] **`MF-701`**: Failure Lab demo fault configuration & Cờ bảo mật Fail Fast (`MEDIAFLOW_DEMO_MODE=true` cấm trong production).
+- [x] **`MF-702`**: Xử lý 5 kịch bản lỗi giả lập FL-01 đến FL-05 (Interrupted upload, worker crash, corrupt output, publish timeout, cancellation).
+- [x] **`MF-703`**: Outage runbook cho FL-06 (Stop/Start MinIO & Redis).
+- [x] **`MF-704`**: Lệnh CLI Operator executable (`apps/ops`) cho các câu lệnh `list`, `inspect`, `retry`, `reconcile`, `watch`.
+- [x] **`MF-705`**: Attention UI & Hướng dẫn hành động an toàn tiếp theo (Safe Next Action).
+- [x] **`MF-706`**: Polish giao diện & tự động phục hồi kết nối.
+- [x] **`MF-707`**: Fault integration test suite `test/fault/failure_lab.test.ts`.
 
 ---
 
