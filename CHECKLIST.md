@@ -16,7 +16,7 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 | 06  | 2026-08-24     | `MF-106`  | Hoàn thiện 100% Milestone 1 (M1 Auth, Tenant Scope & Projects API, Cursor Pagination, Tenant Isolation Integration Test Suite) | 🟢 Đã commit & push | `[2026-08-24] Commit #6: Hoan thanh 100% Milestone 1 (M1 Auth, Tenant Scope & Projects)` (2d8b0e9) |
 | 07  | 2026-08-24     | `MF-206`  | Hoàn thiện 100% Milestone 2 (M2 MinIO Multipart Object Storage Adapter, Presigned URLs, React Uploader Component, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #7: Hoan thanh 100% Milestone 2 (M2 Multipart Upload MinIO)` (f50e322) |
 | 08  | 2026-08-24     | `MF-306`  | Hoàn thiện 100% Milestone 3 (M3 Queue & Outbox Adapter, Transactional Outbox Pattern, SSE Replay Gateway, Operator Inspect API, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #8: Hoan thanh 100% Milestone 3 (M3 Queue, Outbox va Realtime SSE)` (e35ed52) |
-| 09  | 2026-08-24     | `MF-409`  | Hoàn thiện 100% Milestone 4 (M4 FFmpeg Safe Command Engine, ffprobe JSON parser, Thumbnail, 720p/1080p Transcode Profiles, Cooperative Cancellation, Scratch Cleanup, và Integration Tests) | 🟡 Chờ commit | `[2026-08-24] Commit #9: Hoan thanh 100% Milestone 4 (M4 FFmpeg va Media Processing Pipeline)` |
+| 09  | 2026-08-24     | `MF-409`  | Hoàn thiện 100% Milestone 4 (M4 FFmpeg Safe Command Engine, ffprobe JSON parser, Thumbnail, 720p/1080p Transcode Profiles, Cooperative Cancellation, Scratch Cleanup, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #9: Hoan thanh 100% Milestone 4 (M4 FFmpeg va Media Processing Pipeline)` (b616102) |
 
 ---
 
