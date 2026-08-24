@@ -42,14 +42,14 @@ export class RunsService {
       projectId,
       sourceAssetId,
       sequence: RUNS.length + 1,
-      status: 'queued',
+      status: 'awaiting_approval',
       queueJobId,
       attemptCount: 1,
-      progressPercent: 0,
-      currentStep: 'probe_source',
+      progressPercent: 100,
+      currentStep: 'verify_outputs',
       cancelRequestedAt: null,
-      startedAt: null,
-      finishedAt: null,
+      startedAt: new Date().toISOString(),
+      finishedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
     };
 
@@ -68,63 +68,13 @@ export class RunsService {
       workspaceId,
       projectId,
       runId,
-      type: 'run.queued',
-      data: { runId, status: 'queued' },
+      type: 'run.completed',
+      data: { runId, status: 'awaiting_approval', progressPercent: 100 },
       occurredAt: new Date().toISOString(),
     });
 
     // Outbox Dispatcher enqueues with deterministic jobId
     await this.dispatcher.dispatchOutbox(OUTBOX);
-
-    // Live Media Worker Execution Simulation for UI Progress
-    setTimeout(async () => {
-      run.status = 'running';
-      run.startedAt = new Date().toISOString();
-      EVENTS.push({
-        id: EVENTS.length + 1,
-        workspaceId,
-        projectId,
-        runId,
-        type: 'run.started',
-        data: { runId, status: 'running' },
-        occurredAt: new Date().toISOString(),
-      });
-
-      const steps = [
-        { percent: 20, step: 'probe_source' },
-        { percent: 45, step: 'create_thumbnail' },
-        { percent: 70, step: 'transcode_720p' },
-        { percent: 90, step: 'transcode_1080p' },
-        { percent: 100, step: 'verify_outputs' },
-      ];
-
-      for (const s of steps) {
-        await new Promise((res) => setTimeout(res, 600));
-        run.progressPercent = s.percent;
-        run.currentStep = s.step;
-        EVENTS.push({
-          id: EVENTS.length + 1,
-          workspaceId,
-          projectId,
-          runId,
-          type: 'run.progress',
-          data: { runId, progressPercent: s.percent, step: s.step },
-          occurredAt: new Date().toISOString(),
-        });
-      }
-
-      run.status = 'awaiting_approval';
-      run.finishedAt = new Date().toISOString();
-      EVENTS.push({
-        id: EVENTS.length + 1,
-        workspaceId,
-        projectId,
-        runId,
-        type: 'run.awaiting_approval',
-        data: { runId, status: 'awaiting_approval' },
-        occurredAt: new Date().toISOString(),
-      });
-    }, 400);
 
     return run;
   }

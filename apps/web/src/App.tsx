@@ -25,12 +25,21 @@ interface Run {
   currentStep: string | null;
 }
 
+interface PublishOp {
+  id: string;
+  state: 'pending' | 'requested' | 'confirmed' | 'failed' | 'uncertain';
+  destinationBucket: string;
+  destinationKey: string;
+  lastErrorMessage: string | null;
+}
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState<SeedUser | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [newProjectName, setNewProjectName] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeRuns, setActiveRuns] = useState<Record<string, Run>>({});
+  const [publishOps, setPublishOps] = useState<Record<string, PublishOp>>({});
   const [rejectionReason, setRejectionReason] = useState<Record<string, string>>({});
 
   const seedUsers: SeedUser[] = [
@@ -124,26 +133,8 @@ export default function App() {
         body: JSON.stringify({ sourceAssetId: 'asset_src_demo' }),
       });
       const run = await res.json();
-
       setActiveRuns((prev) => ({ ...prev, [projectId]: run }));
       fetchProjects();
-
-      // Poll run progress
-      const interval = setInterval(async () => {
-        const runsRes = await fetch('/api/v1/operator/runs', {
-          headers: { 'x-workspace-id': currentUser.workspaceId },
-        });
-        const runsData = await runsRes.json();
-        const updatedRun = (runsData.runs || []).find((r: any) => r.id === run.id);
-
-        if (updatedRun) {
-          setActiveRuns((prev) => ({ ...prev, [projectId]: updatedRun }));
-          fetchProjects();
-          if (updatedRun.status === 'awaiting_approval' || updatedRun.status === 'failed') {
-            clearInterval(interval);
-          }
-        }
-      }, 500);
     } catch (err) {
       console.error('Failed to process run', err);
     }
@@ -186,6 +177,36 @@ export default function App() {
       if (copy[projectId]) copy[projectId].status = 'rejected';
       return copy;
     });
+  };
+
+  const handlePublish = async (runId: string, simulateLoss = false) => {
+    if (!currentUser) return;
+    const res = await fetch('/api/v1/publish/trigger', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-workspace-id': currentUser.workspaceId,
+        'x-user-id': currentUser.id,
+      },
+      body: JSON.stringify({ runId, sourceAssetId: 'asset_src_demo', profile: '720p', simulateResponseLoss: simulateLoss }),
+    });
+    const op = await res.json();
+    setPublishOps((prev) => ({ ...prev, [runId]: op }));
+  };
+
+  const handleReconcile = async (operationId: string, runId: string) => {
+    if (!currentUser) return;
+    const res = await fetch(`/api/v1/publish/${operationId}/reconcile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-workspace-id': currentUser.workspaceId,
+        'x-user-id': currentUser.id,
+      },
+      body: JSON.stringify({ reason: 'HEAD evidence confirmed object exists on delivery bucket' }),
+    });
+    const op = await res.json();
+    setPublishOps((prev) => ({ ...prev, [runId]: op }));
   };
 
   return (
@@ -282,6 +303,8 @@ export default function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {projects.map((p) => {
                 const activeRun = activeRuns[p.id];
+                const pubOp = activeRun ? publishOps[activeRun.id] : null;
+
                 return (
                   <div
                     key={p.id}
@@ -374,6 +397,56 @@ export default function App() {
                             >
                               ❌ Reviewer Reject
                             </button>
+                          </div>
+                        )}
+
+                        {/* Approved -> Trigger Publish Controls */}
+                        {activeRun.status === 'approved' && (
+                          <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px dashed #334155' }}>
+                            <div style={{ fontWeight: 'bold', color: '#38bdf8', marginBottom: '8px', fontSize: '14px' }}>
+                              🚀 Publish Delivery (Bàn giao sang MinIO Delivery Bucket):
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                              <button
+                                onClick={() => handlePublish(activeRun.id, false)}
+                                style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                              >
+                                📤 Publish Delivery Thành Công
+                              </button>
+                              <button
+                                onClick={() => handlePublish(activeRun.id, true)}
+                                style={{ padding: '8px 14px', background: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                              >
+                                ⚠️ Giả lập Lỗi Mất Mạng FL-04 (Uncertain State)
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Publish Result Display */}
+                        {pubOp && (
+                          <div style={{ marginTop: '15px', padding: '12px', background: pubOp.state === 'uncertain' ? '#78350f' : '#064e3b', borderRadius: '6px' }}>
+                            <div style={{ fontWeight: 'bold', color: '#fff' }}>
+                              Trạng thái Publish: <span style={{ color: pubOp.state === 'uncertain' ? '#fde047' : '#34d399' }}>{pubOp.state.toUpperCase()}</span>
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '4px' }}>
+                              Target Bucket: <code>{pubOp.destinationBucket}</code> | Key: <code>{pubOp.destinationKey}</code>
+                            </div>
+                            {pubOp.lastErrorMessage && (
+                              <div style={{ fontSize: '12px', color: '#fef08a', marginTop: '4px' }}>
+                                Message: {pubOp.lastErrorMessage}
+                              </div>
+                            )}
+
+                            {/* Operator Reconcile Button */}
+                            {pubOp.state === 'uncertain' && (
+                              <button
+                                onClick={() => handleReconcile(pubOp.id, activeRun.id)}
+                                style={{ marginTop: '10px', padding: '6px 12px', background: '#ca8a04', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                              >
+                                ⚖️ Operator Reconcile (HEAD Evidence Verification)
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
