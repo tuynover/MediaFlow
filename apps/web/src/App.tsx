@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Uploader } from './components/Uploader';
 
 interface SeedUser {
   id: string;
@@ -16,13 +17,22 @@ interface Project {
   createdAt: string;
 }
 
+interface Run {
+  id: string;
+  projectId: string;
+  status: string;
+  progressPercent: number;
+  currentStep: string | null;
+}
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState<SeedUser | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [newProjectName, setNewProjectName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activeRuns, setActiveRuns] = useState<Record<string, Run>>({});
+  const [rejectionReason, setRejectionReason] = useState<Record<string, string>>({});
 
-  // Seed User Options for Testing
   const seedUsers: SeedUser[] = [
     {
       id: '11111111-1111-7111-a111-111111111111',
@@ -48,7 +58,6 @@ export default function App() {
   ];
 
   useEffect(() => {
-    // Default select first seed user
     if (!currentUser) {
       setCurrentUser(seedUsers[0]);
     }
@@ -102,8 +111,85 @@ export default function App() {
     }
   };
 
+  const handleProcessRun = async (projectId: string) => {
+    if (!currentUser) return;
+    try {
+      const res = await fetch(`/api/v1/projects/${projectId}/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-workspace-id': currentUser.workspaceId,
+          'x-user-id': currentUser.id,
+        },
+        body: JSON.stringify({ sourceAssetId: 'asset_src_demo' }),
+      });
+      const run = await res.json();
+
+      setActiveRuns((prev) => ({ ...prev, [projectId]: run }));
+      fetchProjects();
+
+      // Poll run progress
+      const interval = setInterval(async () => {
+        const runsRes = await fetch('/api/v1/operator/runs', {
+          headers: { 'x-workspace-id': currentUser.workspaceId },
+        });
+        const runsData = await runsRes.json();
+        const updatedRun = (runsData.runs || []).find((r: any) => r.id === run.id);
+
+        if (updatedRun) {
+          setActiveRuns((prev) => ({ ...prev, [projectId]: updatedRun }));
+          fetchProjects();
+          if (updatedRun.status === 'awaiting_approval' || updatedRun.status === 'failed') {
+            clearInterval(interval);
+          }
+        }
+      }, 500);
+    } catch (err) {
+      console.error('Failed to process run', err);
+    }
+  };
+
+  const handleApprove = async (runId: string, projectId: string) => {
+    if (!currentUser) return;
+    await fetch(`/api/v1/runs/${runId}/approve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-workspace-id': currentUser.workspaceId,
+        'x-user-id': currentUser.id,
+      },
+      body: JSON.stringify({ note: 'Approved via Web UI' }),
+    });
+    fetchProjects();
+    setActiveRuns((prev) => {
+      const copy = { ...prev };
+      if (copy[projectId]) copy[projectId].status = 'approved';
+      return copy;
+    });
+  };
+
+  const handleReject = async (runId: string, projectId: string) => {
+    if (!currentUser) return;
+    const reason = rejectionReason[runId] || 'Color grading does not match brand guidelines.';
+    await fetch(`/api/v1/runs/${runId}/reject`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-workspace-id': currentUser.workspaceId,
+        'x-user-id': currentUser.id,
+      },
+      body: JSON.stringify({ reason }),
+    });
+    fetchProjects();
+    setActiveRuns((prev) => {
+      const copy = { ...prev };
+      if (copy[projectId]) copy[projectId].status = 'rejected';
+      return copy;
+    });
+  };
+
   return (
-    <div style={{ maxWidth: '900px', margin: '40px auto', padding: '0 20px' }}>
+    <div style={{ maxWidth: '960px', margin: '40px auto', padding: '0 20px' }}>
       <header style={{ borderBottom: '1px solid #334155', paddingBottom: '20px', marginBottom: '30px' }}>
         <h1 style={{ margin: 0, color: '#38bdf8' }}>🎬 MediaFlow Baseline v1</h1>
         <p style={{ color: '#94a3b8', marginTop: '5px' }}>
@@ -151,7 +237,7 @@ export default function App() {
           <form onSubmit={handleCreateProject} style={{ display: 'flex', gap: '10px' }}>
             <input
               type="text"
-              placeholder="Nhập tên project video..."
+              placeholder="Nhập tên project video (ví dụ: TVC Summer Campaign)..."
               value={newProjectName}
               onChange={(e) => setNewProjectName(e.target.value)}
               style={{
@@ -190,43 +276,111 @@ export default function App() {
             <p style={{ color: '#94a3b8' }}>Đang tải danh sách project...</p>
           ) : projects.length === 0 ? (
             <div style={{ background: '#1e293b', padding: '20px', borderRadius: '8px', textAlign: 'center', color: '#94a3b8' }}>
-              Chưa có project nào thuộc workspace này.
+              Chưa có project nào thuộc workspace này. Bạn hãy gõ tên ở trên và bấm "Tạo Project"!
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {projects.map((p) => (
-                <div
-                  key={p.id}
-                  style={{
-                    background: '#1e293b',
-                    padding: '15px 20px',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    borderLeft: '4px solid #38bdf8',
-                  }}
-                >
-                  <div>
-                    <strong style={{ fontSize: '16px', color: '#f8fafc' }}>{p.name}</strong>
-                    <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
-                      ID: {p.id} | Ngày tạo: {new Date(p.createdAt).toLocaleString('vi-VN')}
-                    </div>
-                  </div>
-                  <span
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {projects.map((p) => {
+                const activeRun = activeRuns[p.id];
+                return (
+                  <div
+                    key={p.id}
                     style={{
-                      padding: '4px 10px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      background: '#334155',
-                      color: '#38bdf8',
+                      background: '#1e293b',
+                      padding: '20px',
+                      borderRadius: '8px',
+                      borderLeft: '4px solid #38bdf8',
                     }}
                   >
-                    {p.status}
-                  </span>
-                </div>
-              ))}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong style={{ fontSize: '18px', color: '#f8fafc' }}>{p.name}</strong>
+                        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                          ID: {p.id} | Ngày tạo: {new Date(p.createdAt).toLocaleString('vi-VN')}
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          background: '#334155',
+                          color: '#38bdf8',
+                        }}
+                      >
+                        {p.status}
+                      </span>
+                    </div>
+
+                    {/* Component Multipart Uploader */}
+                    <div style={{ marginTop: '15px' }}>
+                      <Uploader
+                        projectId={p.id}
+                        workspaceId={currentUser?.workspaceId || ''}
+                        userId={currentUser?.id || ''}
+                        onUploadComplete={() => fetchProjects()}
+                      />
+                    </div>
+
+                    {/* Action & Run Progress */}
+                    <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #334155', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <button
+                        onClick={() => handleProcessRun(p.id)}
+                        style={{
+                          padding: '8px 16px',
+                          background: '#10b981',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        ⚡ Khởi chạy Xử lý (Process Video)
+                      </button>
+                    </div>
+
+                    {/* Live Progress Bar */}
+                    {activeRun && (
+                      <div style={{ marginTop: '15px', background: '#0f172a', padding: '15px', borderRadius: '6px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
+                          <span>Trạng thái Xử lý: <strong style={{ color: '#38bdf8' }}>{activeRun.status}</strong></span>
+                          <span>Bước: <code style={{ color: '#f59e0b' }}>{activeRun.currentStep || 'queued'}</code> ({activeRun.progressPercent}%)</span>
+                        </div>
+                        <div style={{ background: '#334155', borderRadius: '4px', height: '12px', overflow: 'hidden' }}>
+                          <div style={{ width: `${activeRun.progressPercent}%`, background: '#10b981', height: '100%', transition: 'width 0.4s ease' }} />
+                        </div>
+
+                        {/* Reviewer Action Buttons */}
+                        {activeRun.status === 'awaiting_approval' && (
+                          <div style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <button
+                              onClick={() => handleApprove(activeRun.id, p.id)}
+                              style={{ padding: '8px 14px', background: '#059669', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                            >
+                              ✅ Reviewer Approve
+                            </button>
+                            <input
+                              type="text"
+                              placeholder="Lý do từ chối (10-1000 ký tự)..."
+                              value={rejectionReason[activeRun.id] || ''}
+                              onChange={(e) => setRejectionReason({ ...rejectionReason, [activeRun.id]: e.target.value })}
+                              style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #475569', background: '#1e293b', color: '#fff' }}
+                            />
+                            <button
+                              onClick={() => handleReject(activeRun.id, p.id)}
+                              style={{ padding: '8px 14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                            >
+                              ❌ Reviewer Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>

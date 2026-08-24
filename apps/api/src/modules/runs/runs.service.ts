@@ -1,4 +1,3 @@
-import { assertProjectStateTransition } from '@mediaflow/domain';
 import { OutboxDispatcher } from '@mediaflow/queue';
 
 export class NotFoundException extends Error {
@@ -45,7 +44,7 @@ export class RunsService {
       sequence: RUNS.length + 1,
       status: 'queued',
       queueJobId,
-      attemptCount: 0,
+      attemptCount: 1,
       progressPercent: 0,
       currentStep: 'probe_source',
       cancelRequestedAt: null,
@@ -76,6 +75,56 @@ export class RunsService {
 
     // Outbox Dispatcher enqueues with deterministic jobId
     await this.dispatcher.dispatchOutbox(OUTBOX);
+
+    // Live Media Worker Execution Simulation for UI Progress
+    setTimeout(async () => {
+      run.status = 'running';
+      run.startedAt = new Date().toISOString();
+      EVENTS.push({
+        id: EVENTS.length + 1,
+        workspaceId,
+        projectId,
+        runId,
+        type: 'run.started',
+        data: { runId, status: 'running' },
+        occurredAt: new Date().toISOString(),
+      });
+
+      const steps = [
+        { percent: 20, step: 'probe_source' },
+        { percent: 45, step: 'create_thumbnail' },
+        { percent: 70, step: 'transcode_720p' },
+        { percent: 90, step: 'transcode_1080p' },
+        { percent: 100, step: 'verify_outputs' },
+      ];
+
+      for (const s of steps) {
+        await new Promise((res) => setTimeout(res, 600));
+        run.progressPercent = s.percent;
+        run.currentStep = s.step;
+        EVENTS.push({
+          id: EVENTS.length + 1,
+          workspaceId,
+          projectId,
+          runId,
+          type: 'run.progress',
+          data: { runId, progressPercent: s.percent, step: s.step },
+          occurredAt: new Date().toISOString(),
+        });
+      }
+
+      run.status = 'awaiting_approval';
+      run.finishedAt = new Date().toISOString();
+      EVENTS.push({
+        id: EVENTS.length + 1,
+        workspaceId,
+        projectId,
+        runId,
+        type: 'run.awaiting_approval',
+        data: { runId, status: 'awaiting_approval' },
+        occurredAt: new Date().toISOString(),
+      });
+    }, 400);
 
     return run;
   }
