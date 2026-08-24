@@ -9,6 +9,7 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 | STT | Ngày thực hiện | Mã Ticket | Nội dung công việc đã hoàn thành | Trạng thái | Commit Reference |
 |:---:|:--------------:|:---------:|:----------------------------------|:----------:|:----------------|
 | 01  | 2026-08-24     | `MF-000`  | Khởi tạo cấu trúc thư mục AI (4 folders) & Monorepo, thiết lập file rules và script verify-no-rhinoq | 🟢 Đã commit & push | `[2026-08-24] Commit #1: Khoi tao cau truc thu muc AI & Monorepo, tao file system rules va checklist luu vet` (c596340) |
+| 02  | 2026-08-24     | `MF-003`  | Khởi tạo Monorepo infra (package.json, pnpm-workspace, tsconfig, Docker Compose PostgreSQL/Redis/MinIO) & NestJS/React Vite stack | 🟡 Chờ commit | `[2026-08-24] Commit #2: Khoi tao monorepo infrastructure voi NestJS Backend va React Vite Frontend` |
 
 ---
 
@@ -16,11 +17,11 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 
 ### Milestone 0: Cấu trúc Thư mục & Quality Gates (M0)
 - [x] **`MF-001`**: Tạo cấu trúc thư mục AI (`prompts/`, `data/`, `agents/`, `evals/`) kết hợp với Monorepo (`apps/`, `packages/`, `docker/`, `scripts/`, `test/`).
-- [x] **`MF-002`**: Tạo tệp quy tắc hệ thống `RULES.md` & `prompts/system/rules.md`.
+- [x] **`MF-002`**: Tạo tệp quy tắc hệ thống `RULES.md` & `prompts/system/rules.md` (định nghĩa công nghệ NestJS API + React Vite Web).
 - [x] **`MF-005`**: Viết script `scripts/verify-no-rhinoq.mjs` kiểm tra cấm tích hợp RhinoQ.
-- [ ] **`MF-003`**: Khởi tạo `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`.
-- [ ] **`MF-004`**: Khởi tạo Docker Compose cho PostgreSQL, Redis, MinIO.
-- [ ] **`MF-006`**: Cấu hình ESLint, Prettier, Vitest, Playwright.
+- [x] **`MF-003`**: Khởi tạo `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`.
+- [x] **`MF-004`**: Khởi tạo Docker Compose cho PostgreSQL 16, Redis 7, MinIO.
+- [ ] **`MF-006`**: Cấu hình NestJS API skeleton (`apps/api`) & React Vite UI skeleton (`apps/web`).
 
 ---
 

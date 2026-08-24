@@ -19,7 +19,14 @@ Tài liệu này định nghĩa các quy tắc hệ thống bắt buộc cho nh�
 
 ---
 
-## 2. Quy tắc Kiến trúc & Dữ liệu
+## 2. Quy tắc Kiến trúc & Công nghệ
+
+### 2.0. Tech Stack Chuẩn
+- **Backend (`apps/api`)**: NestJS (TypeScript) với Fastify adapter / Express adapter.
+- **Frontend (`apps/web`)**: React 18 + Vite + TypeScript + Tailwind CSS.
+- **Worker (`apps/worker`)**: Node.js + BullMQ + FFmpeg / ffprobe binary.
+- **Database & Queue**: PostgreSQL 16 + Drizzle ORM / Redis + BullMQ.
+- **Object Storage**: MinIO (S3 compatible API).
 
 ### 2.1. Phân lập dữ liệu đa người dùng (Multi-Tenancy Isolation)
 - Mọi câu lệnh truy vấn dữ liệu (PostgreSQL query/Drizzle) bắt buộc chứa điều kiện `workspace_id`.
