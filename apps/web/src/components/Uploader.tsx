@@ -9,6 +9,7 @@ interface UploaderProps {
 
 export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: UploaderProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
@@ -110,6 +111,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
 
       setProgress(100);
       setStatusMessage('⚡ Tải video siêu tốc thành công 100%!');
+      setUploadedFileName(file.name);
       setFile(null);
       if (onUploadComplete) onUploadComplete();
     } catch (err) {
@@ -169,9 +171,14 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
         </div>
       )}
 
-      {!uploading && statusMessage && (
-        <div style={{ marginTop: '8px', fontSize: '12px', color: '#10b981', fontWeight: 'bold' }}>
-          {statusMessage}
+      {uploadedFileName && !uploading && (
+        <div style={{ marginTop: '10px', padding: '10px 14px', background: '#064e3b', borderRadius: '6px', border: '1px solid #10b981' }}>
+          <div style={{ fontSize: '13px', color: '#ecfdf5', fontWeight: 'bold' }}>
+            ✅ Đã nạp thành công video vào MinIO Source Bucket: <code style={{ color: '#34d399' }}>{uploadedFileName}</code>
+          </div>
+          <div style={{ fontSize: '12px', color: '#a7f3d0', marginTop: '4px' }}>
+            Tệp đã nằm an toàn trong bucket <code style={{ color: '#fbbf24' }}>mediaflow-source</code>. Bây giờ bạn có thể bấm nút <strong>⚡ Khởi chạy Xử lý (Process Video)</strong> bên dưới!
+          </div>
         </div>
       )}
     </div>
