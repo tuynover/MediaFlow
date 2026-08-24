@@ -19,7 +19,7 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 | 09  | 2026-08-24     | `MF-409`  | Hoàn thiện 100% Milestone 4 (M4 FFmpeg Safe Command Engine, ffprobe JSON parser, Thumbnail, 720p/1080p Transcode Profiles, Cooperative Cancellation, Scratch Cleanup, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #9: Hoan thanh 100% Milestone 4 (M4 FFmpeg va Media Processing Pipeline)` (b616102) |
 | 10  | 2026-08-24     | `MF-506`  | Hoàn thiện 100% Milestone 5 (M5 Verification Engine, Processed Output Checks, Reviewer Inbox, Approval/Rejection Guards, 409 Conflict Handling, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #10: Hoan thanh 100% Milestone 5 (M5 Verification va Reviewer Approval Workflow)` (a05ff8a) |
 | 11  | 2026-08-24     | `MF-606`  | Hoàn thiện 100% Milestone 6 (M6 Publish Operation Ledger, FL-04 Response-Loss Simulation, Delivery Verification, Operator Reconcile via HEAD evidence, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #11: Hoan thanh 100% Milestone 6 (M6 Publish va Uncertain Result Recovery)` (d2f3812) |
-| 12  | 2026-08-24     | `MF-707`  | Hoàn thiện 100% Milestone 7 (M7 Failure Lab Scenarios FL-01..FL-06, Security Demo Guard, Operator CLI Commands, Attention UI, và Fault Integration Test Suite) | 🟡 Chờ commit | `[2026-08-24] Commit #12: Hoan thanh 100% Milestone 7 (M7 Failure Lab, Operator CLI va Fault Test Suite)` |
+| 12  | 2026-08-24     | `MF-707`  | Hoàn thiện 100% Milestone 7 (M7 Failure Lab Scenarios FL-01..FL-06, Security Demo Guard, Operator CLI Commands, Attention UI, và Fault Integration Test Suite) | 🟢 Đã commit & push | `[2026-08-24] Commit #12: Hoan thanh 100% Milestone 7 (M7 Failure Lab, Operator CLI va Fault Test Suite)` (086721d) |
 
 ---
 
