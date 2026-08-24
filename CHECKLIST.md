@@ -17,6 +17,7 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 | 07  | 2026-08-24     | `MF-206`  | Hoàn thiện 100% Milestone 2 (M2 MinIO Multipart Object Storage Adapter, Presigned URLs, React Uploader Component, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #7: Hoan thanh 100% Milestone 2 (M2 Multipart Upload MinIO)` (f50e322) |
 | 08  | 2026-08-24     | `MF-306`  | Hoàn thiện 100% Milestone 3 (M3 Queue & Outbox Adapter, Transactional Outbox Pattern, SSE Replay Gateway, Operator Inspect API, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #8: Hoan thanh 100% Milestone 3 (M3 Queue, Outbox va Realtime SSE)` (e35ed52) |
 | 09  | 2026-08-24     | `MF-409`  | Hoàn thiện 100% Milestone 4 (M4 FFmpeg Safe Command Engine, ffprobe JSON parser, Thumbnail, 720p/1080p Transcode Profiles, Cooperative Cancellation, Scratch Cleanup, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #9: Hoan thanh 100% Milestone 4 (M4 FFmpeg va Media Processing Pipeline)` (b616102) |
+| 10  | 2026-08-24     | `MF-506`  | Hoàn thiện 100% Milestone 5 (M5 Verification Engine, Processed Output Checks, Reviewer Inbox, Approval/Rejection Guards, 409 Conflict Handling, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #10: Hoan thanh 100% Milestone 5 (M5 Verification va Reviewer Approval Workflow)` (d88f921) |
 
 ---
 
@@ -77,13 +78,13 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 
 ---
 
-### Milestone 5: Output Verification & Reviewer Approval (M5)
-- [ ] **`MF-501`**: Verification engine & schema `verification_results`.
-- [ ] **`MF-502`**: Processed output checks (duration, codec, resolution, size, integrity).
-- [ ] **`MF-503`**: Reviewer inbox UI & endpoints `/runs/:runId/approve`, `/runs/:runId/reject`.
-- [ ] **`MF-504`**: Guards chống double approval / race conditions.
-- [ ] **`MF-505`**: Revision flow cho producer tải nguồn mới khi bị từ chối.
-- [ ] **`MF-506`**: Verification & approval integration tests.
+### Milestone 5: Verification & Approval Workflow (M5) — 🟢 HOÀN THÀNH 100%
+- [x] **`MF-501`**: Verification engine & schema `verification_results`.
+- [x] **`MF-502`**: Processed output checks (Duration match, H.264 video codec, file size > 0, object existence).
+- [x] **`MF-503`**: Reviewer inbox UI & endpoints `/api/v1/runs/:runId/approve`, `/api/v1/runs/:runId/reject`.
+- [x] **`MF-504`**: Guards chống double approval & xử lý `409 Conflict` khi quyết định bị xung đột.
+- [x] **`MF-505`**: Yêu cầu bắt buộc lý do từ chối (10-1000 ký tự) cho luồng Revision.
+- [x] **`MF-506`**: Integration test suite `test/integration/verification_approval.test.ts`.
 
 ---
 
