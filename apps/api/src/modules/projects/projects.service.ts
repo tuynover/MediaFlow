@@ -1,10 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
 import { MediaProject, CreateProjectInput } from '@mediaflow/contracts';
+
+export class NotFoundException extends Error {
+  constructor(public errorResponse: any) {
+    super(errorResponse?.error?.message || 'Not Found');
+    this.name = 'NotFoundException';
+  }
+}
 
 // In-Memory Project Store for Baseline
 const PROJECTS: MediaProject[] = [];
 
-@Injectable()
 export class ProjectsService {
   async createProject(workspaceId: string, userId: string, input: CreateProjectInput): Promise<MediaProject> {
     const project: MediaProject = {
