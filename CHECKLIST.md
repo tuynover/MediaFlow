@@ -10,6 +10,7 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 |:---:|:--------------:|:---------:|:----------------------------------|:----------:|:----------------|
 | 01  | 2026-08-24     | `MF-000`  | Khởi tạo cấu trúc thư mục AI (4 folders) & Monorepo, thiết lập file rules và script verify-no-rhinoq | 🟢 Đã commit & push | `[2026-08-24] Commit #1: Khoi tao cau truc thu muc AI & Monorepo, tao file system rules va checklist luu vet` (c596340) |
 | 02  | 2026-08-24     | `MF-003`  | Khởi tạo Monorepo infra (package.json, pnpm-workspace, tsconfig, Docker Compose PostgreSQL/Redis/MinIO) & NestJS/React Vite stack | 🟢 Đã commit & push | `[2026-08-24] Commit #2: Khoi tao monorepo infrastructure voi NestJS Backend va React Vite Frontend` (c607f06) |
+| 03  | 2026-08-24     | `MF-101`  | Triển khai Shared Packages (contracts, domain, database 13 schemas), NestJS Auth & Tenant Isolation Modules, và React Web UI Switcher | 🟡 Chờ commit | `[2026-08-24] Commit #3: Trien khai Shared Packages, Database Schema, NestJS Auth va Tenant Isolation` |
 
 ---
 
@@ -21,17 +22,17 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 - [x] **`MF-005`**: Viết script `scripts/verify-no-rhinoq.mjs` kiểm tra cấm tích hợp RhinoQ.
 - [x] **`MF-003`**: Khởi tạo `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`.
 - [x] **`MF-004`**: Khởi tạo Docker Compose cho PostgreSQL 16, Redis 7, MinIO.
-- [ ] **`MF-006`**: Cấu hình NestJS API skeleton (`apps/api`) & React Vite UI skeleton (`apps/web`).
+- [x] **`MF-006`**: Cấu hình NestJS API skeleton (`apps/api`) & React Vite UI skeleton (`apps/web`).
 
 ---
 
 ### Milestone 1: Auth, Tenant & Project Management (M1)
-- [ ] **`MF-101`**: Schema `workspaces`, `users`, `sessions`.
-- [ ] **`MF-102`**: Endpoints `/auth/login`, `/auth/logout`, `/auth/me`.
-- [ ] **`MF-103`**: Middleware kiểm tra Role & Tenant isolation (`workspace_id`).
-- [ ] **`MF-104`**: Project CRUD & cursor pagination API.
-- [ ] **`MF-105`**: Seed 2 workspace mẫu (`Acme Studio`, `Beta Studio`).
-- [ ] **`MF-106`**: Integration tests kiểm tra cách ly dữ liệu giữa các tenant.
+- [x] **`MF-101`**: Schema `workspaces`, `users`, `media_projects` (và toàn bộ 13 schemas theo đặc tả trong `@mediaflow/database`).
+- [x] **`MF-102`**: Endpoints `/api/v1/auth/login`, `/auth/logout`, `/auth/me`, `/auth/seed-users` trong NestJS.
+- [x] **`MF-103`**: NestJS `TenantGuard` kiểm tra Role & Tenant isolation (`workspace_id`).
+- [x] **`MF-104`**: Project CRUD API trong NestJS (`ProjectsService` & `ProjectsController`).
+- [x] **`MF-105`**: Seed users cho 2 workspace (`Acme Studio`, `Beta Studio`).
+- [x] **`MF-106`**: Giao diện React Vite cho phép chuyển đổi tài khoản seed kiểm thử Tenant Isolation trực quan.
 
 ---
 
