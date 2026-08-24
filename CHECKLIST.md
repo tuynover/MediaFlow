@@ -12,19 +12,21 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 | 02  | 2026-08-24     | `MF-003`  | Khởi tạo Monorepo infra (package.json, pnpm-workspace, tsconfig, Docker Compose PostgreSQL/Redis/MinIO) & NestJS/React Vite stack | 🟢 Đã commit & push | `[2026-08-24] Commit #2: Khoi tao monorepo infrastructure voi NestJS Backend va React Vite Frontend` (c607f06) |
 | 03  | 2026-08-24     | `MF-101`  | Triển khai Shared Packages (contracts, domain, database 13 schemas), NestJS Auth & Tenant Isolation Modules, và React Web UI Switcher | 🟢 Đã commit & push | `[2026-08-24] Commit #3: Trien khai Shared Packages, Database Schema, NestJS Auth va Tenant Isolation` (02f8e91) |
 | 04  | 2026-08-24     | `MF-007`  | Cấu hình GitHub Actions CI Workflow (.github/workflows/ci.yml) và bộ chấm điểm code tự động AI Evaluator Scorecard | 🟢 Đã commit & push | `[2026-08-24] Commit #4: Them GitHub Actions CI workflow va cong cu danh gia code quality scorecard` (055bcb8) |
+| 05  | 2026-08-24     | `MF-008`  | Hoàn thiện 100% Milestone 0 (M0 Baseline Infrastructure, Vitest unit test suite, wait-for-services & demo-fixtures scripts) | 🟡 Chờ commit | `[2026-08-24] Commit #5: Hoan thanh 100% Milestone 0 (M0 Baseline Infrastructure & Test Suite)` |
 
 ---
 
 ## 2. Checklist Chi tiết theo Milestone
 
-### Milestone 0: Cấu trúc Thư mục & Quality Gates (M0)
+### Milestone 0: Cấu trúc Thư mục & Quality Gates (M0) — 🟢 HOÀN THÀNH 100%
 - [x] **`MF-001`**: Tạo cấu trúc thư mục AI (`prompts/`, `data/`, `agents/`, `evals/`) kết hợp với Monorepo (`apps/`, `packages/`, `docker/`, `scripts/`, `test/`).
 - [x] **`MF-002`**: Tạo tệp quy tắc hệ thống `RULES.md` & `prompts/system/rules.md` (định nghĩa công nghệ NestJS API + React Vite Web).
-- [x] **`MF-005`**: Viết script `scripts/verify-no-rhinoq.mjs` kiểm tra cấm tích hợp RhinoQ.
 - [x] **`MF-003`**: Khởi tạo `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`.
 - [x] **`MF-004`**: Khởi tạo Docker Compose cho PostgreSQL 16, Redis 7, MinIO.
+- [x] **`MF-005`**: Viết script `scripts/verify-no-rhinoq.mjs` kiểm tra cấm tích hợp RhinoQ.
 - [x] **`MF-006`**: Cấu hình NestJS API skeleton (`apps/api`) & React Vite UI skeleton (`apps/web`).
 - [x] **`MF-007`**: Cấu hình GitHub Actions CI Pipeline & AI Code Quality Scorecard Evaluator (`evals/scorecards/`).
+- [x] **`MF-008`**: Tích hợp Vitest runner (`vitest.config.ts`), Unit tests cho Domain Rules, và tiện ích `wait-for-services.mjs` & `demo-fixtures.mjs`.
 
 ---
 

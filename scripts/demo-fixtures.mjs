@@ -1,0 +1,10 @@
+console.log('🌱 Seed Fixtures Generator initialized.');
+console.log('  Workspace 1: Acme Studio (ID: a0000000-0000-7000-a000-000000000001)');
+console.log('    - producer@acme.local (Producer)');
+console.log('    - reviewer@acme.local (Reviewer)');
+console.log('    - operator@acme.local (Operator)');
+console.log('  Workspace 2: Beta Studio (ID: b0000000-0000-7000-b000-000000000002)');
+console.log('    - producer@beta.local (Producer)');
+console.log('    - reviewer@beta.local (Reviewer)');
+console.log('    - operator@beta.local (Operator)');
+console.log('✅ Demo seed fixtures ready.');
