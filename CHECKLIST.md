@@ -16,6 +16,7 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 | 06  | 2026-08-24     | `MF-106`  | Hoàn thiện 100% Milestone 1 (M1 Auth, Tenant Scope & Projects API, Cursor Pagination, Tenant Isolation Integration Test Suite) | 🟢 Đã commit & push | `[2026-08-24] Commit #6: Hoan thanh 100% Milestone 1 (M1 Auth, Tenant Scope & Projects)` (2d8b0e9) |
 | 07  | 2026-08-24     | `MF-206`  | Hoàn thiện 100% Milestone 2 (M2 MinIO Multipart Object Storage Adapter, Presigned URLs, React Uploader Component, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #7: Hoan thanh 100% Milestone 2 (M2 Multipart Upload MinIO)` (f50e322) |
 | 08  | 2026-08-24     | `MF-306`  | Hoàn thiện 100% Milestone 3 (M3 Queue & Outbox Adapter, Transactional Outbox Pattern, SSE Replay Gateway, Operator Inspect API, và Integration Tests) | 🟢 Đã commit & push | `[2026-08-24] Commit #8: Hoan thanh 100% Milestone 3 (M3 Queue, Outbox va Realtime SSE)` (e35ed52) |
+| 09  | 2026-08-24     | `MF-409`  | Hoàn thiện 100% Milestone 4 (M4 FFmpeg Safe Command Engine, ffprobe JSON parser, Thumbnail, 720p/1080p Transcode Profiles, Cooperative Cancellation, Scratch Cleanup, và Integration Tests) | 🟡 Chờ commit | `[2026-08-24] Commit #9: Hoan thanh 100% Milestone 4 (M4 FFmpeg va Media Processing Pipeline)` |
 
 ---
 
@@ -63,16 +64,16 @@ Tài liệu này dùng để lưu vết toàn bộ tiến độ triển khai d�
 
 ---
 
-### Milestone 4: FFmpeg Media Processing (M4)
-- [ ] **`MF-401`**: Safe `ffprobe` JSON output parser adapter.
-- [ ] **`MF-402`**: Xử lý tính toán SHA-256 nguồn bất đồng bộ.
-- [ ] **`MF-403`**: Trích xuất Thumbnail JPEG.
-- [ ] **`MF-404`**: Transcode video 720p H.264/AAC.
-- [ ] **`MF-405`**: Conditional transcode 1080p (hoặc source-normalized).
-- [ ] **`MF-406`**: Realtime FFmpeg progress parser (`-progress pipe:1`) kèm throttle.
-- [ ] **`MF-407`**: Upload kết quả transcode với deterministic object key.
-- [ ] **`MF-408`**: Cooperative cancellation (lắng nghe cờ hủy, SIGTERM/SIGKILL).
-- [ ] **`MF-409`**: Worker media integration tests.
+### Milestone 4: FFmpeg & Artifacts Pipeline (M4) — 🟢 HOÀN THÀNH 100%
+- [x] **`MF-401`**: Safe `ffprobe` JSON output parser adapter (`MediaProcessor.parseProbeData`).
+- [x] **`MF-402`**: Tính toán SHA-256 nguồn và metadata.
+- [x] **`MF-403`**: Trích xuất Thumbnail JPEG từ frame video đầu tiên.
+- [x] **`MF-404`**: Chuyển mã (Transcode) video 720p H.264/AAC.
+- [x] **`MF-405`**: Chuyển mã 1080p điều kiện (tự động `skipped` nếu độ phân giải nguồn <= 720p).
+- [x] **`MF-406`**: Realtime FFmpeg progress parser (`-progress pipe:1`) kèm throttle.
+- [x] **`MF-407`**: Upload kết quả transcode với deterministic object key.
+- [x] **`MF-408`**: Cooperative cancellation (lắng nghe cờ hủy, SIGTERM/SIGKILL) & Tự động dọn dẹp scratch directory `/tmp/mediaflow/<runId>/`.
+- [x] **`MF-409`**: Worker media integration test suite `test/integration/media_pipeline.test.ts`.
 
 ---
 
