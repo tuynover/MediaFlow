@@ -81,6 +81,15 @@ export class ProjectsService {
     PROJECTS.length = 0;
   }
 
+  static updateProjectStatus(projectId: string, status: any) {
+    const project = PROJECTS.find((p) => p.id === projectId);
+    if (project) {
+      project.status = status;
+      project.updatedAt = new Date().toISOString();
+      project.version += 1;
+    }
+  }
+
   async updateProjectName(workspaceId: string, projectId: string, newName: string): Promise<MediaProject> {
     const project = await this.getProjectById(workspaceId, projectId);
     project.name = newName;

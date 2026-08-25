@@ -1,4 +1,5 @@
 import { RunsService } from '../runs/runs.service';
+import { ProjectsService } from '../projects/projects.service';
 
 export class ConflictException extends Error {
   constructor(public errorResponse: any) {
@@ -159,6 +160,10 @@ export class ApprovalsService {
 
     APPROVALS.push(record);
     RunsService.updateRunStatus(runId, 'rejected', reason);
+    const targetRun = RunsService.getRunById(runId);
+    if (targetRun) {
+      ProjectsService.updateProjectStatus(targetRun.projectId, 'needs_changes');
+    }
     return record;
   }
 

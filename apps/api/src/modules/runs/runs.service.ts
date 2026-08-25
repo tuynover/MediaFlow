@@ -46,6 +46,10 @@ export class RunsService {
     }
   }
 
+  static getRunById(runId: string): ProcessingRun | undefined {
+    return RUNS.find((r) => r.id === runId);
+  }
+
   async createProcessingRun(workspaceId: string, projectId: string, sourceAssetId: string): Promise<ProcessingRun> {
     const runId = crypto.randomUUID();
     const queueJobId = `process:${runId}`;
