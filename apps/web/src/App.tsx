@@ -46,7 +46,7 @@ interface PublishOp {
   lastErrorMessage: string | null;
 }
 
-const VideoThumbnail = ({ videoUrl }: { videoUrl?: string }) => {
+const VideoThumbnail = ({ videoUrl, filename, assetId }: { videoUrl?: string; filename: string; assetId: string }) => {
   const [thumbSrc, setThumbSrc] = useState<string | null>(null);
 
   useEffect(() => {
@@ -79,7 +79,7 @@ const VideoThumbnail = ({ videoUrl }: { videoUrl?: string }) => {
       <div style={{ position: 'relative' }}>
         <img
           src={thumbSrc}
-          alt="FFmpeg Thumbnail"
+          alt={`FFmpeg Thumbnail for ${filename}`}
           style={{ width: '120px', height: '68px', borderRadius: '6px', border: '1px solid #38bdf8', objectFit: 'cover' }}
         />
         <span style={{ position: 'absolute', bottom: '4px', right: '4px', background: 'rgba(0,0,0,0.85)', color: '#34d399', fontSize: '9px', padding: '1px 4px', borderRadius: '3px', fontWeight: 'bold' }}>
@@ -89,6 +89,11 @@ const VideoThumbnail = ({ videoUrl }: { videoUrl?: string }) => {
     );
   }
 
+  // Generate unique color theme per asset filename/ID so every asset has a distinct visual card
+  const hash = (filename + assetId).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const hue = hash % 360;
+  const gradient = `linear-gradient(135deg, hsl(${hue}, 45%, 12%) 0%, hsl(${(hue + 45) % 360}, 55%, 20%) 100%)`;
+
   return (
     <div
       style={{
@@ -96,8 +101,8 @@ const VideoThumbnail = ({ videoUrl }: { videoUrl?: string }) => {
         width: '120px',
         height: '68px',
         borderRadius: '6px',
-        border: '1px solid #38bdf8',
-        background: 'linear-gradient(135deg, #090d16 0%, #1e293b 100%)',
+        border: `1px solid hsl(${hue}, 70%, 50%)`,
+        background: gradient,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -105,7 +110,7 @@ const VideoThumbnail = ({ videoUrl }: { videoUrl?: string }) => {
         overflow: 'hidden',
       }}
     >
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={`hsl(${hue}, 80%, 65%)`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
         <line x1="7" y1="2" x2="7" y2="22"></line>
         <line x1="17" y1="2" x2="17" y2="22"></line>
@@ -115,8 +120,8 @@ const VideoThumbnail = ({ videoUrl }: { videoUrl?: string }) => {
         <line x1="17" y1="17" x2="22" y2="17"></line>
         <line x1="17" y1="7" x2="22" y2="7"></line>
       </svg>
-      <span style={{ fontSize: '9px', color: '#38bdf8', fontWeight: 'bold', marginTop: '4px' }}>
-        thumb_poster.jpg
+      <span style={{ fontSize: '9px', color: `hsl(${hue}, 80%, 75%)`, fontWeight: 'bold', marginTop: '3px', maxWidth: '100px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {filename}
       </span>
       <span style={{ position: 'absolute', bottom: '2px', right: '4px', background: 'rgba(0,0,0,0.85)', color: '#34d399', fontSize: '8px', padding: '1px 3px', borderRadius: '2px', fontWeight: 'bold' }}>
         1920x1080
@@ -614,8 +619,11 @@ export default function App() {
                           projectId={p.id}
                           workspaceId={currentUser?.workspaceId || ''}
                           userId={currentUser?.id || ''}
-                          onUploadComplete={(url) => {
-                            setVideoUrls((prev) => ({ ...prev, [p.id]: url }));
+                          onUploadComplete={(url, assetId) => {
+                            setVideoUrls((prev) => ({
+                              ...prev,
+                              ...(assetId ? { [assetId]: url } : {}),
+                            }));
                             fetchProjects();
                           }}
                         />
@@ -638,9 +646,8 @@ export default function App() {
                               <div key={asset.id} style={{ background: '#1e293b', padding: '12px 15px', borderRadius: '6px', border: '1px solid #334155' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                    {/* FFmpeg Extracted Thumbnail Frame */}
-                                      {/* Dynamic FFmpeg Extracted Thumbnail Component */}
-                                      <VideoThumbnail videoUrl={videoUrls[p.id] || videoUrls[asset.id]} />
+                                    {/* FFmpeg Extracted Thumbnail Frame (Unique Per Asset) */}
+                                    <VideoThumbnail videoUrl={videoUrls[asset.id]} filename={asset.originalFilename} assetId={asset.id} />
                                     <div>
                                       <strong style={{ color: '#ecfdf5', fontSize: '14px' }}>📹 {asset.originalFilename}</strong>
                                       <span style={{ color: '#94a3b8', marginLeft: '10px', fontSize: '12px' }}>({(asset.sizeBytes / (1024 * 1024)).toFixed(2)} MB)</span>

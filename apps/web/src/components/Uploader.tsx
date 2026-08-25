@@ -4,7 +4,7 @@ interface UploaderProps {
   projectId: string;
   workspaceId: string;
   userId: string;
-  onUploadComplete?: (videoUrl: string) => void;
+  onUploadComplete?: (videoUrl: string, assetId?: string) => void;
 }
 
 // Helper to persist upload session state in IndexedDB (Spec Section 11.1)
@@ -211,7 +211,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
 
       // Step 3: Complete multipart upload
       setStatusMessage('3. Hoàn tất kết nối MinIO Session...');
-      await fetch(`/api/v1/uploads/${uploadId}/complete`, {
+      const completeRes = await fetch(`/api/v1/uploads/${uploadId}/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -220,6 +220,8 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
         },
         body: JSON.stringify({ parts: reportedParts }),
       });
+      const completeData = await completeRes.json();
+      const createdAssetId = completeData?.assetId;
 
       localStorage.removeItem(storageKey);
       setResumableSession(null);
@@ -227,7 +229,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       setStatusMessage('⚡ Tải video siêu tốc thành công 100%!');
       setUploadedFileName(file.name);
       setFile(null);
-      if (onUploadComplete && previewUrl) onUploadComplete(previewUrl);
+      if (onUploadComplete && previewUrl) onUploadComplete(previewUrl, createdAssetId);
     } catch (err) {
       console.error(err);
       setStatusMessage('❌ Lỗi upload video!');
