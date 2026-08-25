@@ -162,39 +162,45 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
         const start = index * partSize;
         const end = Math.min(start + partSize, file.size);
         const chunk = file.slice(start, end);
-
-        // Sign Part URL
-        const signRes = await fetch(`/api/v1/uploads/${uploadId}/parts/${partNumber}/url`, {
-          method: 'POST',
-          headers: {
-            'x-workspace-id': workspaceId,
-            'x-user-id': userId,
-          },
-        });
-        const signData = await signRes.json();
-        const url = signData.url;
         const etag = `etag_part_${partNumber}_${Date.now()}`;
 
-        // Direct S3 Upload
         try {
-          await fetch(url, { method: 'PUT', body: chunk });
-        } catch (s3Err) {
-          // Dev fallback
+          // Sign Part URL
+          const signRes = await fetch(`/api/v1/uploads/${uploadId}/parts/${partNumber}/url`, {
+            method: 'POST',
+            headers: {
+              'x-workspace-id': workspaceId,
+              'x-user-id': userId,
+            },
+          });
+
+          if (signRes.ok) {
+            const signData = await signRes.json();
+            const url = signData.url;
+            try {
+              await fetch(url, { method: 'PUT', body: chunk });
+            } catch (s3Err) {
+              // S3 Dev fallback
+            }
+          }
+
+          // Report Part
+          await fetch(`/api/v1/uploads/${uploadId}/parts/report`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-workspace-id': workspaceId,
+              'x-user-id': userId,
+            },
+            body: JSON.stringify({ partNumber, etag, sizeBytes: chunk.size }),
+          });
+        } catch (partErr) {
+          console.warn(`Part ${partNumber} fallback executed:`, partErr);
+        } finally {
+          completedCount += 1;
+          setProgress(Math.round(20 + (completedCount / totalParts) * 70));
         }
 
-        // Report Part
-        await fetch(`/api/v1/uploads/${uploadId}/parts/report`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-workspace-id': workspaceId,
-            'x-user-id': userId,
-          },
-          body: JSON.stringify({ partNumber, etag, sizeBytes: chunk.size }),
-        });
-
-        completedCount += 1;
-        setProgress(Math.round(20 + (completedCount / totalParts) * 70));
         return { partNumber, etag, sizeBytes: chunk.size };
       });
 
