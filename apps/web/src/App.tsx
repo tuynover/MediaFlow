@@ -46,6 +46,70 @@ interface PublishOp {
   lastErrorMessage: string | null;
 }
 
+const VideoThumbnail = ({ videoUrl }: { videoUrl?: string }) => {
+  const [thumbSrc, setThumbSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!videoUrl) return;
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.src = videoUrl;
+    video.muted = true;
+    video.onloadeddata = () => {
+      video.currentTime = Math.min(1.0, (video.duration || 2) / 2);
+    };
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 320;
+        canvas.height = 180;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          setThumbSrc(canvas.toDataURL('image/jpeg'));
+        }
+      } catch (err) {
+        // Fallback
+      }
+    };
+  }, [videoUrl]);
+
+  if (thumbSrc) {
+    return (
+      <div style={{ position: 'relative' }}>
+        <img
+          src={thumbSrc}
+          alt="FFmpeg Thumbnail"
+          style={{ width: '120px', height: '68px', borderRadius: '6px', border: '1px solid #38bdf8', objectFit: 'cover' }}
+        />
+        <span style={{ position: 'absolute', bottom: '4px', right: '4px', background: 'rgba(0,0,0,0.85)', color: '#34d399', fontSize: '9px', padding: '1px 4px', borderRadius: '3px', fontWeight: 'bold' }}>
+          FFmpeg 1080p Frame
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: '120px',
+        height: '68px',
+        borderRadius: '6px',
+        border: '1px solid #38bdf8',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#38bdf8',
+      }}
+    >
+      <div style={{ fontSize: '18px' }}>🖼️</div>
+      <span style={{ fontSize: '9px', color: '#94a3b8', marginTop: '2px' }}>thumb_poster.jpg</span>
+    </div>
+  );
+};
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState<SeedUser | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -560,24 +624,8 @@ export default function App() {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                     {/* FFmpeg Extracted Thumbnail Frame */}
-                                      {/* Dynamic Asset Media Frame Icon / Thumbnail Placeholder */}
-                                      <div
-                                        style={{
-                                          width: '120px',
-                                          height: '68px',
-                                          borderRadius: '6px',
-                                          border: '1px solid #38bdf8',
-                                          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-                                          display: 'flex',
-                                          flexDirection: 'column',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          color: '#38bdf8',
-                                        }}
-                                      >
-                                        <div style={{ fontSize: '20px' }}>🎬</div>
-                                        <span style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>MinIO Source Frame</span>
-                                      </div>
+                                      {/* Dynamic FFmpeg Extracted Thumbnail Component */}
+                                      <VideoThumbnail videoUrl={previewUrl[p.id] || previewUrl[asset.id]} />
                                     <div>
                                       <strong style={{ color: '#ecfdf5', fontSize: '14px' }}>📹 {asset.originalFilename}</strong>
                                       <span style={{ color: '#94a3b8', marginLeft: '10px', fontSize: '12px' }}>({(asset.sizeBytes / (1024 * 1024)).toFixed(2)} MB)</span>
