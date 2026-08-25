@@ -177,7 +177,8 @@ export class UploadsService {
   }
 
   async getProjectAssets(workspaceId: string, projectId: string): Promise<UploadedAsset[]> {
-    return UPLOADED_ASSETS.filter((a) => a.workspaceId === workspaceId && a.projectId === projectId);
+    return UPLOADED_ASSETS.filter((a) => a.workspaceId === workspaceId && a.projectId === projectId)
+      .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
   }
 
   async deleteAsset(workspaceId: string, projectId: string, assetId: string) {

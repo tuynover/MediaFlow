@@ -637,7 +637,9 @@ export default function App() {
                           📦 Danh sách Video Assets đã nạp lên MinIO Source Bucket ({assets.length}):
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          {assets.map((asset) => {
+                          {[...assets]
+                            .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+                            .map((asset) => {
                             const assetRun = runs.find((r) => r.sourceAssetId === asset.id || runs.length === 1);
                             const pubOp = assetRun ? publishOps[assetRun.id] : null;
                             const isExpanded = assetRun ? expandedReview[assetRun.id] : false;
