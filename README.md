@@ -147,7 +147,59 @@ docker compose start redis
 
 ---
 
-## 🚫 8. Quy tắc Cấm tuyệt đối (No RhinoQ Policy)
+## 🎬 8. Hướng dẫn Kịch bản Demo Hệ thống (Spec Section 29)
+
+### Demo 1 — Happy Path (Luồng Xử Lý & Phê Duyệt Chuẩn)
+1. Đăng nhập giao diện web bằng tài khoản **Acme Producer** (`producer@acme.local`).
+2. Nhập tên và bấm **"Tạo Project"** mới (ví dụ: `Summer Commercial 2026`).
+3. Tải video lớn qua đợt upload nhiều part (Multipart Upload).
+4. Quan sát tiến độ % và các bước trên thanh **Pipeline Timeline**.
+5. Chuyển sang tài khoản **Acme Reviewer** (`reviewer@acme.local`), mở tab **Reviewer Inbox** và bấm **Approve**.
+6. Quan sát tiến trình **Publish Delivery** sao chép tệp sang MinIO Delivery Bucket và kiểm chứng chứng cứ.
+7. Tải video hoàn tất xuống máy qua URL đã được ký chữ ký điện tử (**Signed Presigned URL**).
+
+### Demo 2 — Worker Crash (Mô phỏng Worker Đột Ngột Bị Ngắt)
+1. Trong Failure Lab Drawer, bật kịch bản lỗi **`FL-02` (Worker crash tại 47% khi nén 720p)**.
+2. Khởi chạy đợt xử lý video.
+3. Quan sát tiến trình Worker gặp sự cố crash ngắt đột ngột và tự động khởi động lại (Restart).
+4. Thực thi lệnh CLI kiểm tra: `pnpm mediaflow runs inspect <run-id>`.
+5. Quan sát lượt chạy thử lại (Retry) diễn ra mượt mà và **không tạo ra tệp Output trùng lặp**.
+
+### Demo 3 — Publish Bất Định (Publish Response Loss & Operator Reconcile)
+1. Trong Failure Lab Drawer, bật kịch bản lỗi **`FL-04` (Mất response sau khi publish)**.
+2. Với tư cách Reviewer, bấm **Approve** lượt chạy.
+3. Quan sát trạng thái chuyển sang **`needs_attention` / `uncertain`**.
+4. Xác nhận tệp delivery thực sự đã được tạo thành công trên MinIO Delivery Bucket.
+5. Thực thi lệnh Reconcile qua CLI: `pnpm mediaflow publish reconcile <operation-id> --reason "HEAD verified"` hoặc trên UI.
+6. Quan sát trạng thái hoàn tất thành **`confirmed`** mà không hề copy lại tệp lần thứ hai.
+
+### Demo 4 — Isolation (Kiểm Thử Cách Ly Tenant)
+1. Sao chép URL/ID một Project thuộc **Acme Studio**.
+2. Chuyển tài khoản đăng nhập sang **Beta Producer** (`producer@beta.local`).
+3. Mở URL/truy cập ID project đó trên giao diện/API và xác nhận nhận lại phản hồi **`404 Not Found`**.
+4. Thử xin presigned URL download asset hoặc kết nối SSE stream để xác nhận sự kiện hoàn toàn bị cách ly.
+
+---
+
+## ⚠️ 9. Các Giới Hạn Đã Biết (Known Limitations - Spec Section 30)
+
+MediaFlow Baseline v1 là một phiên bản Baseline thử nghiệm / kiểm thử kiến trúc (Evaluation Baseline), cần lưu ý các giới hạn sau:
+
+1. **Chỉ là phiên bản Evaluation/Demo Baseline**: Hệ thống không cam kết SLA vận hành sản xuất (No Production SLA).
+2. **Single Media Worker Replica**: Thiết lập mặc định chạy đúng một (1) Media Worker với concurrency local = 2.
+3. **Chưa có Distributed Global Resource Limit**: Khi mở rộng scale nhiều worker replicas, giới hạn tài nguyên chưa được quản lý toàn cục qua Distributed Semaphore.
+4. **Phụ thuộc Multipart Upload Session**: Tính năng tiếp tục tải (Upload Resume) phụ thuộc vào phiên làm việc Multipart trên S3 chưa bị hết hạn (TTL).
+5. **Local MinIO Emulator**: MinIO chạy local phục vụ mô phỏng, không đại diện đầy đủ 100% mọi hành vi dịch vụ S3 thương mại (AWS S3, Cloudflare R2, GCP Cloud Storage).
+6. **Chưa có Virus Scanning Sandbox**: Hệ thống chưa tích hợp công cụ quét mã độc sandbox chuyên dụng (như ClamAV).
+7. **Phụ thuộc Build FFmpeg**: Danh sách Codec/Container hỗ trợ phụ thuộc trực tiếp vào bản build FFmpeg đi kèm container.
+8. **Chưa có Quota & Retention Policy Hoàn Chỉnh**: Chưa tích hợp quản lý gói cước billing, giới hạn dung lượng theo Workspace hoặc chính sách tự động dọn dẹp tệp cũ (Retention Policy).
+9. **Delivery Bucket là Target Giả Lập**: MinIO Delivery Bucket đóng vai trò điểm bàn giao mục tiêu mô phỏng, chưa phải hạ tầng CDN thực tế.
+10. **Operator CLI Dùng Polling API**: CLI Operator hoạt động theo cơ chế Polling API định kỳ, chưa phải hệ thống thông báo sự kiện độ bền cao (Durable Notification System).
+11. **Giả Lập Lỗi Môi Trường Local**: Các kịch bản sự cố Failure Lab chạy trong môi trường Docker Local không chứng minh hoàn toàn độ tin cậy trên môi trường phân tán sản xuất (Production Reliability).
+
+---
+
+## 🚫 10. Quy tắc Cấm tuyệt đối (No RhinoQ Policy)
 
 MediaFlow Baseline v1 là một repository độc lập 100%. CI gate sẽ tự động thất bại nếu phát hiện bất kỳ package hoặc import nào liên quan tới RhinoQ (`@rhinoq/*` hoặc `rhinoq`).
 
