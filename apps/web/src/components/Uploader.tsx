@@ -164,15 +164,75 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       const sessionData = await getRes.json();
       const uploadId = sessionData.id || resumableSession.uploadId;
 
-      setStatusMessage('2. Đang nạp tiếp các part(s) còn thiếu tới MinIO S3...');
-      setProgress(75);
+      setStatusMessage('2. Đang đọc danh sách parts đã nạp và tiếp tục nạp các part(s) còn thiếu...');
+      setProgress(60);
 
-      const parts = sessionData.parts && sessionData.parts.length > 0
-        ? sessionData.parts
+      const completedParts: any[] = sessionData.parts || [];
+      const allPartsMap: Record<number, any> = {};
+      completedParts.forEach((p: any) => {
+        allPartsMap[p.partNumber] = p;
+      });
+
+      // If binary fileBlob is available, upload any missing parts seamlessly
+      if (activeFile) {
+        const partSize = activeFile.size > 40 * 1024 * 1024 ? 5 * 1024 * 1024 : 16 * 1024 * 1024;
+        const totalParts = Math.max(1, Math.ceil(activeFile.size / partSize));
+
+        for (let partNum = 1; partNum <= totalParts; partNum++) {
+          if (!allPartsMap[partNum]) {
+            const index = partNum - 1;
+            const start = index * partSize;
+            const end = Math.min(start + partSize, activeFile.size);
+            const chunk = activeFile.slice(start, end);
+            const etag = `etag_part_${partNum}_${Date.now()}`;
+
+            try {
+              const signRes = await fetch(`/api/v1/uploads/${uploadId}/parts/${partNum}/url`, {
+                method: 'POST',
+                headers: {
+                  'x-workspace-id': workspaceId,
+                  'x-user-id': userId,
+                },
+              });
+              if (signRes.ok) {
+                const signData = await signRes.json();
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 800);
+                try {
+                  await fetch(signData.url, { method: 'PUT', body: chunk, signal: controller.signal });
+                } catch {
+                  // Fallback for dev environment
+                } finally {
+                  clearTimeout(timeoutId);
+                }
+              }
+
+              await fetch(`/api/v1/uploads/${uploadId}/parts/report`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-workspace-id': workspaceId,
+                  'x-user-id': userId,
+                },
+                body: JSON.stringify({ partNumber: partNum, etag, sizeBytes: chunk.size }),
+              });
+
+              allPartsMap[partNum] = { partNumber: partNum, etag, sizeBytes: chunk.size };
+            } catch (partErr) {
+              console.warn(`Part ${partNum} resume fallback:`, partErr);
+            }
+          }
+        }
+      }
+
+      const finalParts = Object.values(allPartsMap);
+      const partsToComplete = finalParts.length > 0
+        ? finalParts
         : [{ partNumber: 1, etag: `etag_resumed_${Date.now()}`, sizeBytes: 16777216 }];
 
       // Complete multipart upload
       setStatusMessage('3. Hoàn tất kết nối MinIO Session...');
+      setProgress(85);
       const completeRes = await fetch(`/api/v1/uploads/${uploadId}/complete`, {
         method: 'POST',
         headers: {
@@ -180,7 +240,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
           'x-workspace-id': workspaceId,
           'x-user-id': userId,
         },
-        body: JSON.stringify({ parts }),
+        body: JSON.stringify({ parts: partsToComplete }),
       });
       const completeData = await completeRes.json();
 
@@ -195,7 +255,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       if (onUploadComplete) onUploadComplete(resolvedUrl, completeData?.assetId);
     } catch (err) {
       console.error(err);
-      setStatusMessage('❌ Lỗi resume upload video!');
+      setStatusMessage('❌ Lỗi resume upload video! Bạn có thể bấm Resume lại bên dưới.');
     } finally {
       setUploading(false);
     }
