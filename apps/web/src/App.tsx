@@ -589,8 +589,8 @@ export default function App() {
 
 
 
-                                    {/* PRODUCER: Process Run Button (Only show if video has NOT been processed yet) */}
-                                    {isProducer && (!assetRun || assetRun.status === 'rejected') && (
+                                    {/* PRODUCER: Process Run Button (Only show if video has NEVER been processed) */}
+                                    {isProducer && !assetRun && (
                                       <button
                                         onClick={() => handleProcessRunForAsset(p.id, asset)}
                                         style={{
@@ -666,7 +666,7 @@ export default function App() {
                                         </div>
                                         {isProducer && (
                                           <div style={{ marginTop: '8px', fontSize: '12px', color: '#cbd5e1' }}>
-                                            💡 Bạn có thể nạp bản video sửa đổi mới ở trên hoặc bấm <strong>⚡ Khởi chạy Xử lý Video Này</strong> để chạy lại!
+                                            💡 Bạn có thể nạp bản video sửa đổi mới ở phần tải lên ở trên!
                                           </div>
                                         )}
                                       </div>
