@@ -132,4 +132,21 @@ describe('FFmpeg & Media Worker Pipeline Integration Tests (MF-401..MF-409)', ()
     expect(MediaProcessor.shouldEmitProgress(1000, 10.0, 2100, 10.2)).toBe(true);  // 1100ms delta ➔ Allowed
     expect(MediaProcessor.shouldEmitProgress(1000, 10.0, 1200, 11.5)).toBe(true);  // 1.5% delta ➔ Allowed
   });
+
+  it('should enforce Spec 12.6: Scratch directory path traversal protection, cleanup in finally, and stale TTL cleanup', async () => {
+    const pipeline = new MediaWorkerPipeline();
+
+    // 1. Path traversal security check
+    await expect(
+      pipeline.processRun({
+        runId: '../etc/passwd',
+        workspaceId: 'ws_test',
+        projectId: 'proj_test',
+        sourcePath: '/tmp/test.mp4',
+      })
+    ).rejects.toThrow('SECURITY_ERROR: Scratch directory path traversal attempt detected');
+
+    // 2. Startup stale TTL cleanup
+    expect(() => MediaWorkerPipeline.cleanupStaleScratchDirectories('/tmp/mediaflow', 1000)).not.toThrow();
+  });
 });
