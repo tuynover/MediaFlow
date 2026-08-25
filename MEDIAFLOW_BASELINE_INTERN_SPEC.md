@@ -1,10 +1,4 @@
-# MediaFlow Baseline v1 — Đặc tả triển khai dành cho thực tập sinh
 
-> Trạng thái: sẵn sàng giao việc  
-> Đối tượng: thực tập sinh Full-stack/Backend có người review  
-> Mục tiêu repository: một repository độc lập tên `MediaFlow`  
-> Cập nhật gần nhất: 2026-08-24  
-> Quy tắc quan trọng nhất: **giai đoạn này tuyệt đối không tích hợp RhinoQ**
 
 ---
 

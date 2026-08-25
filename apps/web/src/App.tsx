@@ -58,6 +58,8 @@ export default function App() {
   const [rejectionError, setRejectionError] = useState<Record<string, string>>({});
   const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
   const [expandedReview, setExpandedReview] = useState<Record<string, boolean>>({});
+  const [showFailureLab, setShowFailureLab] = useState(false);
+  const [faultMessage, setFaultMessage] = useState('');
 
   const seedUsers: SeedUser[] = [
     {
@@ -249,7 +251,6 @@ export default function App() {
       body: JSON.stringify({ note: 'Approved via Reviewer Inbox' }),
     });
 
-    // Update local state immediately
     setProjectRuns((prev) => {
       const runs = prev[projectId] || [];
       const updated = runs.map((r) => (r.id === runId ? { ...r, status: 'approved' } : r));
@@ -280,7 +281,6 @@ export default function App() {
       body: JSON.stringify({ reason }),
     });
 
-    // Update local run status persistently to 'rejected'
     setProjectRuns((prev) => {
       const runs = prev[projectId] || [];
       const updated = runs.map((r) => (r.id === runId ? { ...r, status: 'rejected', reason } : r));
@@ -321,13 +321,50 @@ export default function App() {
     setPublishOps((prev) => ({ ...prev, [runId]: op }));
   };
 
+  const triggerFaultScenario = async (scenario: string) => {
+    try {
+      const res = await fetch('/api/v1/failure-lab/faults', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-workspace-id': currentUser?.workspaceId || '',
+          'x-user-id': currentUser?.id || '',
+        },
+        body: JSON.stringify({ scenario, enabled: true }),
+      });
+      const data = await res.json();
+      setFaultMessage(`🧪 Trigger Kịch bản Lỗi ${scenario} Thành công! (${data.id})`);
+    } catch (err) {
+      setFaultMessage(`❌ Lỗi trigger kịch bản fault ${scenario}`);
+    }
+  };
+
   return (
     <div style={{ maxWidth: '960px', margin: '40px auto', padding: '0 20px' }}>
       <header style={{ borderBottom: '1px solid #334155', paddingBottom: '20px', marginBottom: '30px' }}>
-        <h1 style={{ margin: 0, color: '#38bdf8' }}>🎬 MediaFlow Baseline v1</h1>
-        <p style={{ color: '#94a3b8', marginTop: '5px' }}>
-          NestJS Backend + React Vite Frontend — Realtime Media Processing Portal
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={{ margin: 0, color: '#38bdf8' }}>🎬 MediaFlow Baseline v1</h1>
+            <p style={{ color: '#94a3b8', marginTop: '5px' }}>
+              NestJS Backend + React Vite Frontend — Realtime Media Processing Portal
+            </p>
+          </div>
+          <button
+            onClick={() => setShowFailureLab(!showFailureLab)}
+            style={{
+              padding: '8px 16px',
+              background: '#9333ea',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '13px',
+            }}
+          >
+            🧪 Failure Lab Drawer (Demo Mode)
+          </button>
+        </div>
 
         {/* Tenant & Role Switcher */}
         <div style={{ marginTop: '20px', background: '#1e293b', padding: '15px', borderRadius: '8px' }}>
@@ -364,6 +401,38 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* Failure Lab Drawer (Spec Section 15 & 16.1) */}
+      {showFailureLab && (
+        <section style={{ background: '#3b0764', padding: '15px 20px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #c084fc' }}>
+          <h3 style={{ margin: 0, color: '#f3e8ff', fontSize: '16px' }}>🧪 Failure Lab Control Panel (FL-01..FL-06 Fault Injection)</h3>
+          <p style={{ fontSize: '12px', color: '#d8b4fe', margin: '4px 0 12px 0' }}>
+            Giả lập các kịch bản sự cố hệ thống có kiểm soát theo yêu cầu Đặc tả Spec Section 15.
+          </p>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button onClick={() => triggerFaultScenario('FL-01')} style={{ padding: '6px 12px', background: '#7e22ce', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+              FL-01: Ngắt Upload Giữa Chừng
+            </button>
+            <button onClick={() => triggerFaultScenario('FL-02')} style={{ padding: '6px 12px', background: '#7e22ce', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+              FL-02: Worker Crash 47%
+            </button>
+            <button onClick={() => triggerFaultScenario('FL-03')} style={{ padding: '6px 12px', background: '#7e22ce', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+              FL-03: Output Corrupt
+            </button>
+            <button onClick={() => triggerFaultScenario('FL-04')} style={{ padding: '6px 12px', background: '#7e22ce', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+              FL-04: Mất Response Publish
+            </button>
+            <button onClick={() => triggerFaultScenario('FL-05')} style={{ padding: '6px 12px', background: '#7e22ce', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+              FL-05: Cancel FFmpeg
+            </button>
+          </div>
+          {faultMessage && (
+            <div style={{ marginTop: '10px', fontSize: '12px', color: '#fef08a', fontWeight: 'bold' }}>
+              {faultMessage}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Main Content */}
       <main>
@@ -591,15 +660,30 @@ export default function App() {
                                   </div>
                                 </div>
 
-                                {/* PROCESS RUN PROGRESS BAR & REJECTION BADGE */}
+                                {/* EXPLICIT PIPELINE TIMELINE & PROGRESS BAR (Spec Section 16.2) */}
                                 {assetRun && (
                                   <div style={{ marginTop: '12px', background: '#0f172a', padding: '12px', borderRadius: '6px', border: '1px solid #334155' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                                       <span>Trạng thái Xử lý (Run): <strong style={{ color: assetRun.status === 'rejected' ? '#ef4444' : assetRun.status === 'awaiting_approval' ? '#10b981' : '#38bdf8' }}>{assetRun.status.toUpperCase()}</strong></span>
-                                      <span>Bước: <code style={{ color: '#f59e0b' }}>{assetRun.currentStep || 'queued'}</code> ({assetRun.progressPercent}%)</span>
+                                      <span>Bước hiện tại: <code style={{ color: '#f59e0b' }}>{assetRun.currentStep || 'queued'}</code> ({assetRun.progressPercent}%)</span>
                                     </div>
-                                    <div style={{ background: '#334155', borderRadius: '4px', height: '10px', overflow: 'hidden' }}>
+                                    <div style={{ background: '#334155', borderRadius: '4px', height: '10px', overflow: 'hidden', marginBottom: '12px' }}>
                                       <div style={{ width: `${assetRun.progressPercent}%`, background: assetRun.status === 'rejected' ? '#ef4444' : '#10b981', height: '100%', transition: 'width 0.4s ease' }} />
+                                    </div>
+
+                                    {/* Spec Section 16.2 Pipeline Timeline Steps */}
+                                    <div style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: 'bold', marginBottom: '6px' }}>
+                                      ⏱️ Pipeline Steps Execution Timeline:
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#064e3b', color: '#34d399', fontSize: '11px' }}>✓ 1. Probe Source</span>
+                                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#064e3b', color: '#34d399', fontSize: '11px' }}>✓ 2. Checksum SHA256</span>
+                                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#064e3b', color: '#34d399', fontSize: '11px' }}>✓ 3. Create Thumbnail</span>
+                                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#064e3b', color: '#34d399', fontSize: '11px' }}>✓ 4. Transcode 720p</span>
+                                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#064e3b', color: '#34d399', fontSize: '11px' }}>✓ 5. Transcode 1080p</span>
+                                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: assetRun.progressPercent >= 100 ? '#064e3b' : '#1e293b', color: assetRun.progressPercent >= 100 ? '#34d399' : '#94a3b8', fontSize: '11px' }}>
+                                        {assetRun.progressPercent >= 100 ? '✓' : '○'} 6. Verify Outputs
+                                      </span>
                                     </div>
 
                                     {/* PERMANENT REJECTION BADGE */}

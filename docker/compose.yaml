@@ -67,6 +67,54 @@ services:
       echo 'Buckets created successfully.';
       "
 
+  api:
+    image: node:22-alpine
+    container_name: mediaflow-api
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgres://mediaflow:mediaflow_dev_password@postgres:5432/mediaflow
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: http://minio:9000
+      MEDIAFLOW_DEMO_MODE: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  worker:
+    image: node:22-alpine
+    container_name: mediaflow-worker
+    working_dir: /app
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://mediaflow:mediaflow_dev_password@postgres:5432/mediaflow
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: http://minio:9000
+      MEDIA_WORKER_CONCURRENCY: 2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    image: node:22-alpine
+    container_name: mediaflow-web
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3000
+    depends_on:
+      - api
+
 volumes:
   postgres_data:
   redis_data:
