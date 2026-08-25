@@ -27,6 +27,30 @@ function saveSessionToIndexedDB(key: string, data: any) {
   }
 }
 
+function getSessionFromIndexedDB(key: string): Promise<any> {
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open('mediaflow_db', 1);
+      request.onupgradeneeded = (e: any) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('sessions')) {
+          db.createObjectStore('sessions', { keyPath: 'key' });
+        }
+      };
+      request.onsuccess = (e: any) => {
+        const db = e.target.result;
+        const tx = db.transaction('sessions', 'readonly');
+        const getReq = tx.objectStore('sessions').get(key);
+        getReq.onsuccess = () => resolve(getReq.result || null);
+        getReq.onerror = () => resolve(null);
+      };
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
 export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: UploaderProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -39,18 +63,21 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
   const storageKey = `mediaflow_upload_session_${projectId}`;
 
   useEffect(() => {
-    // Check local storage / IndexedDB for resumable upload session
-    const savedSession = localStorage.getItem(storageKey);
-    if (savedSession) {
-      try {
-        const parsed = JSON.parse(savedSession);
-        if (parsed.uploadId && parsed.filename) {
-          setResumableSession({ uploadId: parsed.uploadId, filename: parsed.filename });
+    // Check local storage & IndexedDB for resumable session + stored file Blob
+    getSessionFromIndexedDB(storageKey).then((saved) => {
+      if (saved && saved.uploadId && saved.filename) {
+        setResumableSession({ uploadId: saved.uploadId, filename: saved.filename });
+        if (saved.fileBlob) {
+          try {
+            setFile(saved.fileBlob);
+            const url = URL.createObjectURL(saved.fileBlob);
+            setPreviewUrl(url);
+          } catch (e) {
+            // Blob URL creation fallback
+          }
         }
-      } catch (err) {
-        localStorage.removeItem(storageKey);
       }
-    }
+    });
   }, [projectId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,25 +86,41 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       setFile(selectedFile);
       const url = URL.createObjectURL(selectedFile);
       setPreviewUrl(url);
-      // Clear old resumable session box ONLY if selected file name is different
-      if (resumableSession && resumableSession.filename !== selectedFile.name) {
-        localStorage.removeItem(storageKey);
-        setResumableSession(null);
+      // Save session + binary Blob directly to IndexedDB for seamless resume
+      if (resumableSession) {
+        saveSessionToIndexedDB(storageKey, {
+          uploadId: resumableSession.uploadId,
+          filename: selectedFile.name,
+          projectId,
+          fileBlob: selectedFile,
+          timestamp: Date.now(),
+        });
       }
     }
   };
 
   const resumeUpload = async () => {
     if (!resumableSession) return;
-    if (!file && !previewUrl) {
-      alert(`Vui lòng chọn tệp "${resumableSession.filename}" bằng ô Choose File để tiếp tục Resume và tạo Thumbnail!`);
-      const fileInput = document.getElementById(`file-input-${projectId}`);
-      if (fileInput) fileInput.click();
-      return;
-    }
     setUploading(true);
     setProgress(40);
-    setStatusMessage(`🔄 Khôi phục phiên Upload dở dang: "${resumableSession.filename}"...`);
+    setStatusMessage(`🔄 Tải tiếp phần còn lại của video: "${resumableSession.filename}"...`);
+
+    let activeFile = file;
+    let activePreview = previewUrl;
+
+    if (!activeFile || !activePreview) {
+      const stored = await getSessionFromIndexedDB(storageKey);
+      if (stored && stored.fileBlob) {
+        activeFile = stored.fileBlob;
+        try {
+          activePreview = URL.createObjectURL(stored.fileBlob);
+          setFile(activeFile);
+          setPreviewUrl(activePreview);
+        } catch (err) {
+          // Fallback
+        }
+      }
+    }
 
     try {
       // Fetch session state & existing parts from server
@@ -116,7 +159,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       setProgress(100);
       setStatusMessage('⚡ Resume upload thành công 100%!');
       setUploadedFileName(filename);
-      const resolvedUrl = previewUrl || (file ? URL.createObjectURL(file) : '');
+      const resolvedUrl = activePreview || previewUrl || (activeFile ? URL.createObjectURL(activeFile) : '');
       setFile(null);
       if (onUploadComplete) onUploadComplete(resolvedUrl, completeData?.assetId);
     } catch (err) {
