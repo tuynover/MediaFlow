@@ -625,7 +625,7 @@ export default function App() {
                                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                     {/* FFmpeg Extracted Thumbnail Frame */}
                                       {/* Dynamic FFmpeg Extracted Thumbnail Component */}
-                                      <VideoThumbnail videoUrl={previewUrl[p.id] || previewUrl[asset.id]} />
+                                      <VideoThumbnail videoUrl={videoUrls[p.id] || videoUrls[asset.id]} />
                                     <div>
                                       <strong style={{ color: '#ecfdf5', fontSize: '14px' }}>📹 {asset.originalFilename}</strong>
                                       <span style={{ color: '#94a3b8', marginLeft: '10px', fontSize: '12px' }}>({(asset.sizeBytes / (1024 * 1024)).toFixed(2)} MB)</span>
