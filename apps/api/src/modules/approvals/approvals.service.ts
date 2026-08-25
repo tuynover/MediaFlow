@@ -1,3 +1,5 @@
+import { RunsService } from '../runs/runs.service';
+
 export class ConflictException extends Error {
   constructor(public errorResponse: any) {
     super(errorResponse?.error?.message || 'Conflict');
@@ -95,6 +97,7 @@ export class ApprovalsService {
     const existing = APPROVALS.find((a) => a.runId === runId);
     if (existing) {
       if (existing.decision === 'approved') {
+        RunsService.updateRunStatus(runId, 'approved');
         return existing; // Idempotent response
       }
       throw new ConflictException({
@@ -116,6 +119,7 @@ export class ApprovalsService {
     };
 
     APPROVALS.push(record);
+    RunsService.updateRunStatus(runId, 'approved');
     return record;
   }
 
@@ -132,6 +136,7 @@ export class ApprovalsService {
     const existing = APPROVALS.find((a) => a.runId === runId);
     if (existing) {
       if (existing.decision === 'rejected') {
+        RunsService.updateRunStatus(runId, 'rejected', reason);
         return existing; // Idempotent response
       }
       throw new ConflictException({
@@ -153,6 +158,7 @@ export class ApprovalsService {
     };
 
     APPROVALS.push(record);
+    RunsService.updateRunStatus(runId, 'rejected', reason);
     return record;
   }
 

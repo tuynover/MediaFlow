@@ -22,6 +22,7 @@ export interface ProcessingRun {
   startedAt: string | null;
   finishedAt: string | null;
   createdAt: string;
+  reason?: string;
 }
 
 const RUNS: ProcessingRun[] = [];
@@ -30,6 +31,14 @@ const EVENTS: { id: number; workspaceId: string; projectId: string; runId: strin
 
 export class RunsService {
   private dispatcher = new OutboxDispatcher();
+
+  static updateRunStatus(runId: string, status: any, reason?: string) {
+    const run = RUNS.find((r) => r.id === runId);
+    if (run) {
+      run.status = status;
+      if (reason) run.reason = reason;
+    }
+  }
 
   async createProcessingRun(workspaceId: string, projectId: string, sourceAssetId: string): Promise<ProcessingRun> {
     const runId = crypto.randomUUID();

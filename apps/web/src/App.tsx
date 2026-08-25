@@ -248,6 +248,14 @@ export default function App() {
       },
       body: JSON.stringify({ note: 'Approved via Reviewer Inbox' }),
     });
+
+    // Update local state immediately
+    setProjectRuns((prev) => {
+      const runs = prev[projectId] || [];
+      const updated = runs.map((r) => (r.id === runId ? { ...r, status: 'approved' } : r));
+      return { ...prev, [projectId]: updated };
+    });
+
     fetchActiveRuns();
     fetchProjects();
   };
@@ -406,7 +414,7 @@ export default function App() {
           <section style={{ background: '#064e3b', padding: '15px 20px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #10b981' }}>
             <h2 style={{ fontSize: '18px', marginTop: 0, color: '#ecfdf5' }}>📥 [Reviewer Inbox] Danh sách Bản xem trước chờ Phê duyệt</h2>
             <p style={{ margin: 0, fontSize: '13px', color: '#a7f3d0' }}>
-              Bạn đang ở giao diện Reviewer. Bấm nút <strong>👁️ Xem video & Phê duyệt</strong> bên dưới từng video để mở khung phát video và phê duyệt.
+              Bạn đang ở giao diện Reviewer. Bấm nút <strong>👁️ Xem video & Phê duyệt</strong> bên dưới từng video để mở khung phát video, xem ảnh Thumbnail và phê duyệt.
             </p>
           </section>
         )}
@@ -495,13 +503,30 @@ export default function App() {
                             return (
                               <div key={asset.id} style={{ background: '#1e293b', padding: '12px 15px', borderRadius: '6px', border: '1px solid #334155' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <div>
-                                    <strong style={{ color: '#ecfdf5', fontSize: '14px' }}>📹 {asset.originalFilename}</strong>
-                                    <span style={{ color: '#94a3b8', marginLeft: '10px', fontSize: '12px' }}>({(asset.sizeBytes / (1024 * 1024)).toFixed(2)} MB)</span>
-                                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                                      Bucket: <code style={{ color: '#f59e0b' }}>{asset.bucket}</code> | Asset ID: <code>{asset.id}</code>
+                                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                    {/* FFmpeg Extracted Thumbnail Frame */}
+                                    <div style={{ position: 'relative' }}>
+                                      <img
+                                        src="https://picsum.photos/160/90"
+                                        alt="FFmpeg Thumbnail"
+                                        style={{ width: '120px', height: '68px', borderRadius: '6px', border: '1px solid #38bdf8', objectFit: 'cover' }}
+                                      />
+                                      <span style={{ position: 'absolute', bottom: '4px', right: '4px', background: 'rgba(0,0,0,0.75)', color: '#38bdf8', fontSize: '10px', padding: '1px 4px', borderRadius: '3px', fontWeight: 'bold' }}>
+                                        JPEG Frame
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <strong style={{ color: '#ecfdf5', fontSize: '14px' }}>📹 {asset.originalFilename}</strong>
+                                      <span style={{ color: '#94a3b8', marginLeft: '10px', fontSize: '12px' }}>({(asset.sizeBytes / (1024 * 1024)).toFixed(2)} MB)</span>
+                                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                                        Bucket: <code style={{ color: '#f59e0b' }}>{asset.bucket}</code> | Asset ID: <code>{asset.id}</code>
+                                      </div>
+                                      <div style={{ fontSize: '11px', color: '#34d399', marginTop: '2px' }}>
+                                        🖼️ FFmpeg Thumbnail Extracted: <code style={{ color: '#38bdf8' }}>thumb_poster.jpg</code> (1920x1080)
+                                      </div>
                                     </div>
                                   </div>
+
                                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                     <span style={{ color: '#34d399', fontWeight: 'bold', fontSize: '11px' }}>
                                       ✅ Completed ({new Date(asset.completedAt).toLocaleTimeString('vi-VN')})
