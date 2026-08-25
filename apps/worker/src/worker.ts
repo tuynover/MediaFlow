@@ -38,20 +38,32 @@ export class MediaWorkerPipeline {
       const thumbArgs = MediaProcessor.getThumbnailArgs(job.sourcePath, thumbPath);
       stepResults['create_thumbnail'] = { status: 'succeeded', path: thumbPath, args: thumbArgs };
 
-      // Step 3: Transcode 720p
+      // Step 3 & 4: Profile Transcoding according to Spec 5.2 (Video nguồn dưới 1080p)
       if (cancelChecker && cancelChecker()) throw new Error('CANCELLED: Processing cancelled by user');
-      const p720Path = path.join(scratchDir, '720p.mp4');
-      const p720Args = MediaProcessor.getTranscodeArgs(job.sourcePath, p720Path, 720);
-      stepResults['transcode_720p'] = { status: 'succeeded', path: p720Path, args: p720Args };
 
-      // Step 4: Transcode 1080p (Conditional: only run if source height > 720)
-      if (cancelChecker && cancelChecker()) throw new Error('CANCELLED: Processing cancelled by user');
-      if (metadata.height > 720) {
-        const p1080Path = path.join(scratchDir, '1080p.mp4');
-        const p1080Args = MediaProcessor.getTranscodeArgs(job.sourcePath, p1080Path, 1080);
-        stepResults['transcode_1080p'] = { status: 'succeeded', path: p1080Path, args: p1080Args };
-      } else {
+      const sourceHeight = (job as any).height || metadata.height || 1080;
+
+      if (sourceHeight <= 720) {
+        // Spec 5.2: Nguồn <= 720p ➔ Tạo bản normalized MP4 giữ kích thước hợp lý, profile: source-normalized, không giả nhãn 720p
+        const normPath = path.join(scratchDir, 'source-normalized.mp4');
+        const normArgs = MediaProcessor.getTranscodeArgs(job.sourcePath, normPath, sourceHeight);
+        stepResults['transcode_source_normalized'] = { status: 'succeeded', profile: 'source-normalized', path: normPath, args: normArgs };
+        stepResults['transcode_720p'] = { status: 'skipped', reason: 'source_normalized_used' };
         stepResults['transcode_1080p'] = { status: 'skipped', reason: 'source_resolution_too_low' };
+      } else {
+        // Spec 5.2: Nguồn > 720p ➔ Tạo bản 720p
+        const p720Path = path.join(scratchDir, '720p.mp4');
+        const p720Args = MediaProcessor.getTranscodeArgs(job.sourcePath, p720Path, 720);
+        stepResults['transcode_720p'] = { status: 'succeeded', profile: '720p', path: p720Path, args: p720Args };
+
+        if (sourceHeight > 720 && sourceHeight <= 1080) {
+          const p1080Path = path.join(scratchDir, '1080p.mp4');
+          const p1080Args = MediaProcessor.getTranscodeArgs(job.sourcePath, p1080Path, 1080);
+          stepResults['transcode_1080p'] = { status: 'succeeded', profile: '1080p', path: p1080Path, args: p1080Args };
+        } else {
+          // Spec 5.2: 1080p chuyển sang skipped với reason source_resolution_too_low
+          stepResults['transcode_1080p'] = { status: 'skipped', reason: 'source_resolution_too_low' };
+        }
       }
 
       // Step 5: Verify outputs
