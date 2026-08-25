@@ -142,6 +142,12 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       }
     }
 
+    if (activeFile && activeFile.name !== resumableSession.filename) {
+      alert(`⚠️ Tệp bạn vừa chọn ("${activeFile.name}") KHÔNG KHỚP với phiên upload dở dang ("${resumableSession.filename}").\n\nVui lòng chọn đúng tệp "${resumableSession.filename}" hoặc bấm "❌ Bỏ Qua Session Cũ" để tải video mới!`);
+      setStatusMessage(`❌ Tệp "${activeFile.name}" không khớp với session "${resumableSession.filename}"!`);
+      return;
+    }
+
     if (!activeFile && !activePreview) {
       alert(`Vui lòng chọn tệp "${resumableSession.filename}" bằng ô Choose File để tiếp tục Resume và khởi tạo Video!`);
       const fileInput = document.getElementById(`file-input-${projectId}`);
@@ -150,8 +156,8 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
     }
 
     setUploading(true);
-    setProgress(40);
-    setStatusMessage(`🔄 Tải tiếp phần còn lại của video: "${resumableSession.filename}"...`);
+    setProgress(20);
+    setStatusMessage(`🔄 Đang chuẩn bị Resume tệp: "${resumableSession.filename}"...`);
 
     try {
       // Fetch session state & existing parts from server
@@ -165,7 +171,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       const uploadId = sessionData.id || resumableSession.uploadId;
 
       setStatusMessage('2. Đang đọc danh sách parts đã nạp và tiếp tục nạp các part(s) còn thiếu...');
-      setProgress(60);
+      setProgress(25);
 
       const completedParts: any[] = sessionData.parts || [];
       const allPartsMap: Record<number, any> = {};
@@ -173,12 +179,16 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
         allPartsMap[p.partNumber] = p;
       });
 
-      // If binary fileBlob is available, upload any missing parts seamlessly
+      // If binary fileBlob is available, upload any missing parts seamlessly with dynamic progress updates
       if (activeFile) {
         const partSize = activeFile.size > 40 * 1024 * 1024 ? 5 * 1024 * 1024 : 16 * 1024 * 1024;
         const totalParts = Math.max(1, Math.ceil(activeFile.size / partSize));
 
         for (let partNum = 1; partNum <= totalParts; partNum++) {
+          const currentProgress = Math.round(25 + (partNum / totalParts) * 60);
+          setProgress(currentProgress);
+          setStatusMessage(`2. Đang nạp Part ${partNum}/${totalParts} cho tệp "${resumableSession.filename}" (${currentProgress}%)...`);
+
           if (!allPartsMap[partNum]) {
             const index = partNum - 1;
             const start = index * partSize;
