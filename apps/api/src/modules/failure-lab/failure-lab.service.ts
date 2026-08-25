@@ -3,6 +3,7 @@ export interface DemoFault {
   workspaceId: string;
   projectId: string | null;
   runId: string | null;
+  step: string | null;
   scenario: 'FL-01' | 'FL-02' | 'FL-03' | 'FL-04' | 'FL-05';
   threshold: number;
   remainingUses: number;
@@ -21,6 +22,10 @@ export class ForbiddenDemoModeException extends Error {
 }
 
 export class FailureLabService {
+  static clearAllFaults() {
+    DEMO_FAULTS.length = 0;
+  }
+
   static validateDemoEnvironment(demoMode = process.env.MEDIAFLOW_DEMO_MODE, env = process.env.NODE_ENV) {
     if (demoMode === 'true' && env === 'production') {
       throw new ForbiddenDemoModeException('SECURITY_VIOLATION: MEDIAFLOW_DEMO_MODE is forbidden in production environment!');
@@ -33,7 +38,8 @@ export class FailureLabService {
     scenario: 'FL-01' | 'FL-02' | 'FL-03' | 'FL-04' | 'FL-05',
     threshold = 50,
     remainingUses = 1,
-    runId?: string
+    runId?: string,
+    step?: string
   ): DemoFault {
     FailureLabService.validateDemoEnvironment();
 
@@ -42,6 +48,7 @@ export class FailureLabService {
       workspaceId,
       projectId: null,
       runId: runId || null,
+      step: step || null,
       scenario,
       threshold,
       remainingUses,
@@ -58,9 +65,15 @@ export class FailureLabService {
     return DEMO_FAULTS.filter((f) => f.workspaceId === workspaceId && f.enabled);
   }
 
-  consumeFault(workspaceId: string, scenario: string, runId?: string): DemoFault | null {
+  consumeFault(workspaceId: string, scenario: string, runId?: string, step?: string): DemoFault | null {
     const fault = DEMO_FAULTS.find(
-      (f) => f.workspaceId === workspaceId && f.scenario === scenario && f.enabled && f.remainingUses > 0
+      (f) =>
+        f.workspaceId === workspaceId &&
+        f.scenario === scenario &&
+        f.enabled &&
+        f.remainingUses > 0 &&
+        (!f.runId || f.runId === runId) &&
+        (!f.step || f.step === step)
     );
 
     if (!fault) return null;

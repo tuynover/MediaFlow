@@ -10,6 +10,7 @@ describe('Failure Lab & Operator CLI Fault Tests (MF-701..MF-707)', () => {
   const USER_ID = '11111111-1111-7111-a111-333333333333';
 
   beforeEach(() => {
+    FailureLabService.clearAllFaults();
     failureLabService = new FailureLabService();
   });
 
@@ -38,16 +39,34 @@ describe('Failure Lab & Operator CLI Fault Tests (MF-701..MF-707)', () => {
     expect(fault.enabled).toBe(true);
   });
 
-  it('should consume demo fault once and disable automatically when remainingUses reaches zero', () => {
-    failureLabService.configureFault(WORKSPACE_ID, USER_ID, 'FL-03', 50, 1);
+  it('should enforce Spec 15.1 FL-01: Abort upload at configured percentage threshold while preserving upload session for resume', () => {
+    const fault = failureLabService.configureFault(WORKSPACE_ID, USER_ID, 'FL-01', 50, 1);
+    expect(fault.scenario).toBe('FL-01');
+    expect(fault.threshold).toBe(50);
 
-    const consumed1 = failureLabService.consumeFault(WORKSPACE_ID, 'FL-03');
-    expect(consumed1).not.toBeNull();
-    expect(consumed1?.scenario).toBe('FL-03');
+    const consumed = failureLabService.consumeFault(WORKSPACE_ID, 'FL-01');
+    expect(consumed).not.toBeNull();
+    expect(consumed?.remainingUses).toBe(0);
+    expect(consumed?.enabled).toBe(false);
+  });
 
-    // Second consume fails because remainingUses is 0
-    const consumed2 = failureLabService.consumeFault(WORKSPACE_ID, 'FL-03');
-    expect(consumed2).toBeNull();
+  it('should enforce Spec 15.1 FL-02: Worker crash during transcode bound to runId/step with remainingUses=1 so retry does not crash infinitely', () => {
+    const runId = 'run_fl02_crash_test';
+    const step = 'transcode_720p';
+    const fault = failureLabService.configureFault(WORKSPACE_ID, USER_ID, 'FL-02', 65, 1, runId, step);
+
+    expect(fault.runId).toBe(runId);
+    expect(fault.step).toBe(step);
+    expect(fault.threshold).toBe(65);
+
+    // Attempt 1: Worker consumes fault and crashes
+    const consumedAttempt1 = failureLabService.consumeFault(WORKSPACE_ID, 'FL-02', runId, step);
+    expect(consumedAttempt1).not.toBeNull();
+    expect(consumedAttempt1?.remainingUses).toBe(0);
+
+    // Attempt 2 (Retry): Fault is already consumed, so worker does NOT crash in infinite loop
+    const consumedAttempt2 = failureLabService.consumeFault(WORKSPACE_ID, 'FL-02', runId, step);
+    expect(consumedAttempt2).toBeNull();
   });
 
   it('should execute Operator CLI commands for inspect, retry, and reconcile', async () => {

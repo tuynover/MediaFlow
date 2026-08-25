@@ -34,7 +34,8 @@ export class FailureLabController {
       body.scenario,
       body.threshold || 50,
       body.remainingUses || 1,
-      body.runId
+      body.runId,
+      body.step
     );
   }
 
