@@ -622,6 +622,7 @@ export default function App() {
                           onUploadComplete={(url, assetId) => {
                             setVideoUrls((prev) => ({
                               ...prev,
+                              [p.id]: url,
                               ...(assetId ? { [assetId]: url } : {}),
                             }));
                             fetchProjects();
@@ -762,7 +763,7 @@ export default function App() {
                                         <div style={{ marginBottom: '10px', background: '#020617', padding: '8px', borderRadius: '6px' }}>
                                           <video
                                             controls
-                                            src={videoUrls[p.id] || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'}
+                                            src={videoUrls[asset.id] || videoUrls[p.id] || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'}
                                             style={{ width: '100%', maxHeight: '240px', borderRadius: '4px', backgroundColor: '#000' }}
                                           />
                                         </div>
