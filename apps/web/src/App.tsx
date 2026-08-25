@@ -223,21 +223,7 @@ export default function App() {
     }
   };
 
-  const handleDeleteAsset = async (projectId: string, assetId: string) => {
-    if (!currentUser || !isProducer) return;
-    try {
-      await fetch(`/api/v1/projects/${projectId}/assets/${assetId}`, {
-        method: 'DELETE',
-        headers: {
-          'x-workspace-id': currentUser.workspaceId,
-          'x-user-id': currentUser.id,
-        },
-      });
-      fetchProjects();
-    } catch (err) {
-      console.error('Failed to delete asset', err);
-    }
-  };
+
 
   const handleApprove = async (runId: string, projectId: string) => {
     if (!currentUser || !isReviewer) return;
@@ -601,24 +587,7 @@ export default function App() {
                                       ✅ Completed ({new Date(asset.completedAt).toLocaleTimeString('vi-VN')})
                                     </span>
 
-                                    {/* PRODUCER: Delete Asset Button */}
-                                    {isProducer && (
-                                      <button
-                                        onClick={() => handleDeleteAsset(p.id, asset.id)}
-                                        style={{
-                                          padding: '5px 10px',
-                                          background: '#7f1d1d',
-                                          color: '#fca5a5',
-                                          border: '1px solid #991b1b',
-                                          borderRadius: '6px',
-                                          cursor: 'pointer',
-                                          fontWeight: 'bold',
-                                          fontSize: '12px',
-                                        }}
-                                      >
-                                        🗑️ Xóa Video
-                                      </button>
-                                    )}
+
 
                                     {/* PRODUCER: Process Run Button */}
                                     {isProducer && (
@@ -697,7 +666,7 @@ export default function App() {
                                         </div>
                                         {isProducer && (
                                           <div style={{ marginTop: '8px', fontSize: '12px', color: '#cbd5e1' }}>
-                                            💡 Bạn có thể bấm nút <strong>🗑️ Xóa Video</strong> ở trên để nạp bản cắt mới hoặc bấm <strong>⚡ Khởi chạy Xử lý Video Này</strong> để chạy lại!
+                                            💡 Bạn có thể nạp bản video sửa đổi mới ở trên hoặc bấm <strong>⚡ Khởi chạy Xử lý Video Này</strong> để chạy lại!
                                           </div>
                                         )}
                                       </div>
