@@ -31,6 +31,7 @@ interface UploadedAsset {
 interface Run {
   id: string;
   projectId: string;
+  sourceAssetId: string;
   status: string;
   progressPercent: number;
   currentStep: string | null;
@@ -50,7 +51,7 @@ export default function App() {
   const [projectAssets, setProjectAssets] = useState<Record<string, UploadedAsset[]>>({});
   const [newProjectName, setNewProjectName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeRuns, setActiveRuns] = useState<Record<string, Run>>({});
+  const [projectRuns, setProjectRuns] = useState<Record<string, Run[]>>({});
   const [publishOps, setPublishOps] = useState<Record<string, PublishOp>>({});
   const [rejectionReason, setRejectionReason] = useState<Record<string, string>>({});
   const [rejectionError, setRejectionError] = useState<Record<string, string>>({});
@@ -89,13 +90,13 @@ export default function App() {
   useEffect(() => {
     let timer: any;
     if (currentUser) {
-      setActiveRuns({});
+      setProjectRuns({});
       setPublishOps({});
       setRejectionError({});
       setProjectAssets({});
       fetchProjects();
 
-      // Setup 1-second interval to continuously sync active run status in real time
+      // Setup 1-second interval to continuously sync all runs per project
       timer = setInterval(() => {
         fetchActiveRuns();
       }, 1000);
@@ -118,11 +119,12 @@ export default function App() {
         },
       });
       const runsData = await runsRes.json();
-      const runsMap: Record<string, Run> = {};
+      const runsGrouped: Record<string, Run[]> = {};
       (runsData.runs || []).forEach((r: any) => {
-        runsMap[r.projectId] = r;
+        if (!runsGrouped[r.projectId]) runsGrouped[r.projectId] = [];
+        runsGrouped[r.projectId].push(r);
       });
-      setActiveRuns(runsMap);
+      setProjectRuns(runsGrouped);
     } catch (err) {
       console.error('Failed to fetch active runs', err);
     }
@@ -189,7 +191,7 @@ export default function App() {
     }
   };
 
-  const handleProcessRun = async (projectId: string) => {
+  const handleProcessRunForAsset = async (projectId: string, asset: UploadedAsset) => {
     if (!currentUser || !isProducer) return;
     try {
       const res = await fetch(`/api/v1/projects/${projectId}/process`, {
@@ -199,12 +201,18 @@ export default function App() {
           'x-workspace-id': currentUser.workspaceId,
           'x-user-id': currentUser.id,
         },
-        body: JSON.stringify({ sourceAssetId: 'asset_src_demo' }),
+        body: JSON.stringify({ sourceAssetId: asset.id }),
       });
       const run = await res.json();
-      setActiveRuns((prev) => ({ ...prev, [projectId]: run }));
+      run.sourceAssetFilename = asset.originalFilename;
 
-      // Fast-poll 3 times over 1.5s to capture immediate progress step transition
+      setProjectRuns((prev) => {
+        const existing = prev[projectId] || [];
+        // Filter out any existing run for the same asset or append new run
+        const filtered = existing.filter((r) => r.sourceAssetId !== asset.id);
+        return { ...prev, [projectId]: [...filtered, run] };
+      });
+
       setTimeout(() => fetchActiveRuns(), 200);
       setTimeout(() => fetchActiveRuns(), 500);
       setTimeout(() => fetchActiveRuns(), 1000);
@@ -232,7 +240,6 @@ export default function App() {
     if (!currentUser || !isReviewer) return;
     const reason = rejectionReason[runId] || '';
 
-    // Validate 10-1000 char reason requirement according to Spec Section 5.3 & 10.4
     if (reason.length < 10) {
       setRejectionError({ ...rejectionError, [runId]: '❌ Lý do từ chối phải dài từ 10 đến 1000 ký tự!' });
       return;
@@ -397,9 +404,8 @@ export default function App() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {projects.map((p) => {
-                const activeRun = activeRuns[p.id];
-                const pubOp = activeRun ? publishOps[activeRun.id] : null;
                 const assets = projectAssets[p.id] || [];
+                const runs = projectRuns[p.id] || [];
 
                 return (
                   <div
@@ -450,173 +456,158 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* PERMANENT UPLOADED ASSETS LIST IN MINIO */}
+                    {/* PERMANENT UPLOADED ASSETS LIST IN MINIO WITH DEDICATED PROCESS BUTTON PER VIDEO */}
                     {assets.length > 0 && (
-                      <div style={{ marginTop: '15px', background: '#0f172a', padding: '12px 15px', borderRadius: '6px', border: '1px solid #1e293b' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#38bdf8', marginBottom: '8px' }}>
+                      <div style={{ marginTop: '15px', background: '#0f172a', padding: '15px', borderRadius: '6px', border: '1px solid #1e293b' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#38bdf8', marginBottom: '10px' }}>
                           📦 Danh sách Video Assets đã nạp lên MinIO Source Bucket ({assets.length}):
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {assets.map((asset) => (
-                            <div key={asset.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1e293b', padding: '8px 12px', borderRadius: '4px', fontSize: '12px' }}>
-                              <div>
-                                <strong style={{ color: '#ecfdf5' }}>📹 {asset.originalFilename}</strong>
-                                <span style={{ color: '#94a3b8', marginLeft: '10px' }}>({(asset.sizeBytes / (1024 * 1024)).toFixed(2)} MB)</span>
-                                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                                  Bucket: <code style={{ color: '#f59e0b' }}>{asset.bucket}</code> | Asset ID: <code>{asset.id}</code>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {assets.map((asset) => {
+                            const assetRun = runs.find((r) => r.sourceAssetId === asset.id || runs.length === 1);
+                            const pubOp = assetRun ? publishOps[assetRun.id] : null;
+
+                            return (
+                              <div key={asset.id} style={{ background: '#1e293b', padding: '12px 15px', borderRadius: '6px', border: '1px solid #334155' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div>
+                                    <strong style={{ color: '#ecfdf5', fontSize: '14px' }}>📹 {asset.originalFilename}</strong>
+                                    <span style={{ color: '#94a3b8', marginLeft: '10px', fontSize: '12px' }}>({(asset.sizeBytes / (1024 * 1024)).toFixed(2)} MB)</span>
+                                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                                      Bucket: <code style={{ color: '#f59e0b' }}>{asset.bucket}</code> | Asset ID: <code>{asset.id}</code>
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                    <span style={{ color: '#34d399', fontWeight: 'bold', fontSize: '11px' }}>
+                                      ✅ Completed ({new Date(asset.completedAt).toLocaleTimeString('vi-VN')})
+                                    </span>
+                                    {isProducer && (
+                                      <button
+                                        onClick={() => handleProcessRunForAsset(p.id, asset)}
+                                        style={{
+                                          padding: '6px 12px',
+                                          background: '#10b981',
+                                          color: '#fff',
+                                          border: 'none',
+                                          borderRadius: '6px',
+                                          cursor: 'pointer',
+                                          fontWeight: 'bold',
+                                          fontSize: '12px',
+                                        }}
+                                      >
+                                        ⚡ Khởi chạy Xử lý Video Này
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
+
+                                {/* INDIVIDUAL PROCESS PROGRESS BAR FOR THIS SPECIFIC VIDEO */}
+                                {assetRun && (
+                                  <div style={{ marginTop: '12px', background: '#0f172a', padding: '12px', borderRadius: '6px', border: '1px solid #334155' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
+                                      <span>Trạng thái Xử lý (Run): <strong style={{ color: assetRun.status === 'awaiting_approval' ? '#10b981' : '#38bdf8' }}>{assetRun.status}</strong></span>
+                                      <span>Bước: <code style={{ color: '#f59e0b' }}>{assetRun.currentStep || 'queued'}</code> ({assetRun.progressPercent}%)</span>
+                                    </div>
+                                    <div style={{ background: '#334155', borderRadius: '4px', height: '10px', overflow: 'hidden' }}>
+                                      <div style={{ width: `${assetRun.progressPercent}%`, background: '#10b981', height: '100%', transition: 'width 0.4s ease' }} />
+                                    </div>
+
+                                    {/* REVIEWER ONLY PANEL PER VIDEO */}
+                                    {assetRun.status === 'awaiting_approval' && isReviewer && (
+                                      <div style={{ marginTop: '12px', background: '#1e293b', padding: '10px', borderRadius: '6px', border: '1px solid #059669' }}>
+                                        <div style={{ fontWeight: 'bold', color: '#10b981', marginBottom: '8px', fontSize: '13px' }}>
+                                          📥 Reviewer Approval Control Panel ({asset.originalFilename}):
+                                        </div>
+
+                                        <div style={{ marginBottom: '10px', background: '#020617', padding: '8px', borderRadius: '6px' }}>
+                                          <video
+                                            controls
+                                            src={videoUrls[p.id] || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'}
+                                            style={{ width: '100%', maxHeight: '220px', borderRadius: '4px', backgroundColor: '#000' }}
+                                          />
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                          <button
+                                            onClick={() => handleApprove(assetRun.id, p.id)}
+                                            style={{ padding: '6px 12px', background: '#059669', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                                          >
+                                            ✅ Approve (Duyệt bàn giao)
+                                          </button>
+                                          <input
+                                            id={`reject-reason-${assetRun.id}`}
+                                            name={`reject_reason_${assetRun.id}`}
+                                            type="text"
+                                            placeholder="Nhập lý do từ chối (10-1000 ký tự)..."
+                                            value={rejectionReason[assetRun.id] || ''}
+                                            onChange={(e) => setRejectionReason({ ...rejectionReason, [assetRun.id]: e.target.value })}
+                                            style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontSize: '12px' }}
+                                          />
+                                          <button
+                                            onClick={() => handleReject(assetRun.id, p.id)}
+                                            style={{ padding: '6px 12px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                                          >
+                                            ❌ Reject (Từ chối)
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* PRODUCER VIEW WHEN AWAITING APPROVAL */}
+                                    {assetRun.status === 'awaiting_approval' && isProducer && (
+                                      <div style={{ marginTop: '8px', fontSize: '12px', color: '#10b981', fontWeight: 'bold' }}>
+                                        ✅ Video "{asset.originalFilename}" đã nén và kiểm chứng thành công (100%). Đang chờ Reviewer duyệt!
+                                      </div>
+                                    )}
+
+                                    {/* Approved -> Trigger Publish Controls */}
+                                    {assetRun.status === 'approved' && (
+                                      <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #334155' }}>
+                                        <div style={{ fontWeight: 'bold', color: '#38bdf8', marginBottom: '6px', fontSize: '13px' }}>
+                                          🚀 Publish Delivery (Bàn giao sang MinIO Delivery Bucket):
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                          <button
+                                            onClick={() => handlePublish(assetRun.id, false)}
+                                            style={{ padding: '6px 12px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                                          >
+                                            📤 Publish Delivery Thành Công
+                                          </button>
+                                          <button
+                                            onClick={() => handlePublish(assetRun.id, true)}
+                                            style={{ padding: '6px 12px', background: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                                          >
+                                            ⚠️ Giả lập Lỗi Mất Mạng FL-04 (Uncertain State)
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Publish Result Display */}
+                                    {pubOp && (
+                                      <div style={{ marginTop: '10px', padding: '10px', background: pubOp.state === 'uncertain' ? '#78350f' : '#064e3b', borderRadius: '6px' }}>
+                                        <div style={{ fontWeight: 'bold', color: '#fff', fontSize: '13px' }}>
+                                          Trạng thái Publish: <span style={{ color: pubOp.state === 'uncertain' ? '#fde047' : '#34d399' }}>{pubOp.state.toUpperCase()}</span>
+                                        </div>
+                                        <div style={{ fontSize: '11px', color: '#cbd5e1', marginTop: '2px' }}>
+                                          Target Bucket: <code>{pubOp.destinationBucket}</code> | Key: <code>{pubOp.destinationKey}</code>
+                                        </div>
+                                        {pubOp.state === 'uncertain' && (
+                                          <button
+                                            onClick={() => handleReconcile(pubOp.id, assetRun.id)}
+                                            style={{ marginTop: '8px', padding: '4px 10px', background: '#ca8a04', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px' }}
+                                          >
+                                            ⚖️ Operator Reconcile (HEAD Evidence Verification)
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
-                              <div style={{ color: '#34d399', fontWeight: 'bold', fontSize: '11px' }}>
-                                ✅ Completed ({new Date(asset.completedAt).toLocaleTimeString('vi-VN')})
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
-                      </div>
-                    )}
-
-                    {/* PRODUCER ONLY: Action & Run Process Button */}
-                    {isProducer && (
-                      <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #334155', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                        <button
-                          onClick={() => handleProcessRun(p.id)}
-                          style={{
-                            padding: '8px 16px',
-                            background: '#10b981',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          ⚡ [Producer] Khởi chạy Xử lý (Process Video)
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Live Progress Bar & Reviewer Inbox Panel */}
-                    {activeRun && (
-                      <div style={{ marginTop: '15px', background: '#0f172a', padding: '15px', borderRadius: '6px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
-                          <span>Trạng thái Xử lý (Run): <strong style={{ color: activeRun.status === 'awaiting_approval' ? '#10b981' : '#38bdf8' }}>{activeRun.status}</strong></span>
-                          <span>Bước: <code style={{ color: '#f59e0b' }}>{activeRun.currentStep || 'queued'}</code> ({activeRun.progressPercent}%)</span>
-                        </div>
-                        <div style={{ background: '#334155', borderRadius: '4px', height: '12px', overflow: 'hidden' }}>
-                          <div style={{ width: `${activeRun.progressPercent}%`, background: '#10b981', height: '100%', transition: 'width 0.4s ease' }} />
-                        </div>
-
-                        {/* REVIEWER ONLY PANEL: Approve / Reject Controls & Video Player */}
-                        {activeRun.status === 'awaiting_approval' && isReviewer && (
-                          <div style={{ marginTop: '15px', background: '#1e293b', padding: '12px', borderRadius: '6px', border: '1px solid #059669' }}>
-                            <div style={{ fontWeight: 'bold', color: '#10b981', marginBottom: '10px', fontSize: '14px' }}>
-                              📥 Reviewer Approval Control Panel:
-                            </div>
-
-                            {/* Reviewer Video Player */}
-                            <div style={{ marginBottom: '12px', background: '#020617', padding: '10px', borderRadius: '6px' }}>
-                              <div style={{ fontSize: '12px', color: '#34d399', fontWeight: 'bold', marginBottom: '6px' }}>
-                                🎬 Video Bản Nén Transcoded (720p/1080p Stream Ready for Review):
-                              </div>
-                              <video
-                                controls
-                                src={videoUrls[p.id] || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'}
-                                style={{ width: '100%', maxHeight: '260px', borderRadius: '6px', backgroundColor: '#000' }}
-                              >
-                                Trình duyệt không hỗ trợ thẻ HTML5 Video.
-                              </video>
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                              <button
-                                onClick={() => handleApprove(activeRun.id, p.id)}
-                                style={{ padding: '8px 14px', background: '#059669', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                              >
-                                ✅ Approve (Duyệt bàn giao)
-                              </button>
-                              <label htmlFor={`reject-reason-${activeRun.id}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}>
-                                Lý do từ chối
-                              </label>
-                              <input
-                                id={`reject-reason-${activeRun.id}`}
-                                name={`reject_reason_${activeRun.id}`}
-                                type="text"
-                                placeholder="Nhập lý do từ chối (bắt buộc từ 10 đến 1000 ký tự)..."
-                                value={rejectionReason[activeRun.id] || ''}
-                                onChange={(e) => setRejectionReason({ ...rejectionReason, [activeRun.id]: e.target.value })}
-                                style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff' }}
-                              />
-                              <button
-                                onClick={() => handleReject(activeRun.id, p.id)}
-                                style={{ padding: '8px 14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                              >
-                                ❌ Reject (Từ chối)
-                              </button>
-                            </div>
-                            {rejectionError[activeRun.id] && (
-                              <div style={{ marginTop: '8px', fontSize: '12px', color: '#ef4444', fontWeight: 'bold' }}>
-                                {rejectionError[activeRun.id]}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* PRODUCER VIEW WHEN AWAITING APPROVAL */}
-                        {activeRun.status === 'awaiting_approval' && isProducer && (
-                          <div style={{ marginTop: '10px', fontSize: '13px', color: '#10b981', fontWeight: 'bold' }}>
-                            ✅ Video đã nén và kiểm chứng thành công (100%). Đang chờ Reviewer duyệt! (Vui lòng chọn tài khoản Reviewer từ menu trên để duyệt).
-                          </div>
-                        )}
-
-                        {/* Approved -> Trigger Publish Controls */}
-                        {activeRun.status === 'approved' && (
-                          <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px dashed #334155' }}>
-                            <div style={{ fontWeight: 'bold', color: '#38bdf8', marginBottom: '8px', fontSize: '14px' }}>
-                              🚀 Publish Delivery (Bàn giao sang MinIO Delivery Bucket):
-                            </div>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                              <button
-                                onClick={() => handlePublish(activeRun.id, false)}
-                                style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                              >
-                                📤 Publish Delivery Thành Công
-                              </button>
-                              <button
-                                onClick={() => handlePublish(activeRun.id, true)}
-                                style={{ padding: '8px 14px', background: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                              >
-                                ⚠️ Giả lập Lỗi Mất Mạng FL-04 (Uncertain State)
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Publish Result Display */}
-                        {pubOp && (
-                          <div style={{ marginTop: '15px', padding: '12px', background: pubOp.state === 'uncertain' ? '#78350f' : '#064e3b', borderRadius: '6px' }}>
-                            <div style={{ fontWeight: 'bold', color: '#fff' }}>
-                              Trạng thái Publish: <span style={{ color: pubOp.state === 'uncertain' ? '#fde047' : '#34d399' }}>{pubOp.state.toUpperCase()}</span>
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '4px' }}>
-                              Target Bucket: <code>{pubOp.destinationBucket}</code> | Key: <code>{pubOp.destinationKey}</code>
-                            </div>
-                            {pubOp.lastErrorMessage && (
-                              <div style={{ fontSize: '12px', color: '#fef08a', marginTop: '4px' }}>
-                                Message: {pubOp.lastErrorMessage}
-                              </div>
-                            )}
-
-                            {/* Operator Reconcile Button */}
-                            {pubOp.state === 'uncertain' && (
-                              <button
-                                onClick={() => handleReconcile(pubOp.id, activeRun.id)}
-                                style={{ marginTop: '10px', padding: '6px 12px', background: '#ca8a04', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                              >
-                                ⚖️ Operator Reconcile (HEAD Evidence Verification)
-                              </button>
-                            )}
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
