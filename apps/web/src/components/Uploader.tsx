@@ -44,11 +44,17 @@ function getSessionFromIndexedDB(key: string): Promise<any> {
         getReq.onsuccess = () => resolve(getReq.result || null);
         getReq.onerror = () => resolve(null);
       };
-      request.onerror = () => resolve(null);
-    } catch {
-      resolve(null);
-    }
-  });
+function deleteSessionFromIndexedDB(key: string) {
+  try {
+    const request = indexedDB.open('mediaflow_db', 1);
+    request.onsuccess = (e: any) => {
+      const db = e.target.result;
+      const tx = db.transaction('sessions', 'readwrite');
+      tx.objectStore('sessions').delete(key);
+    };
+  } catch (err) {
+    // Fallback
+  }
 }
 
 export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: UploaderProps) {
@@ -201,9 +207,9 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       const session = await initRes.json();
       const uploadId = session.id;
 
-      // Save session to LocalStorage & IndexedDB for spec-compliant resume capability (Spec 11.1)
-      const sessionData = { uploadId, filename: file.name, projectId, timestamp: Date.now() };
-      localStorage.setItem(storageKey, JSON.stringify(sessionData));
+      // Save session + binary fileBlob to IndexedDB for spec-compliant resume capability (Spec 11.1)
+      const sessionData = { uploadId, filename: file.name, projectId, fileBlob: file, timestamp: Date.now() };
+      localStorage.setItem(storageKey, JSON.stringify({ uploadId, filename: file.name, projectId, timestamp: Date.now() }));
       saveSessionToIndexedDB(storageKey, sessionData);
 
       const partSize = file.size > 40 * 1024 * 1024 ? 5 * 1024 * 1024 : 16 * 1024 * 1024;
