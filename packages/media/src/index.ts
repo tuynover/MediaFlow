@@ -12,9 +12,24 @@ export interface ProbeMetadata {
 
 export class MediaProcessor {
   // Parse ffprobe output safely
-  static parseProbeData(probeJson: any, sizeBytes: number): ProbeMetadata {
+  // Spec 19: Parse ffprobe output safely with Container Whitelist, SSRF Prevention & Limits
+  static parseProbeData(probeJson: any, sizeBytes: number, inputPath = ''): ProbeMetadata {
+    // 1. Spec 19: Remote URL input check (SSRF Prevention)
+    if (inputPath.startsWith('http://') || inputPath.startsWith('https://') || inputPath.startsWith('ftp://')) {
+      throw new Error('SECURITY_ERROR: Remote URLs are strictly prohibited to prevent SSRF vulnerability');
+    }
+
     const streams = probeJson.streams || [];
     const format = probeJson.format || {};
+
+    // 2. Spec 19: Container Whitelist (MOV, MP4, MKV, WebM) strictly from ffprobe
+    const ALLOWED_FORMATS = ['mov', 'mp4', 'm4a', '3gp', '3g2', 'mj2', 'matroska', 'webm', 'mkv'];
+    const rawFormatName = format.format_name || 'mov';
+    const formatName = rawFormatName.toLowerCase();
+    const isAllowedFormat = ALLOWED_FORMATS.some((fmt) => formatName.includes(fmt));
+    if (!isAllowedFormat) {
+      throw new Error(`UNSUPPORTED_CODEC: Container format '${formatName}' is not in allowed whitelist (MOV, MP4, MKV, WebM)`);
+    }
 
     const videoStream = streams.find((s: any) => s.codec_type === 'video');
     if (!videoStream) {
@@ -35,7 +50,7 @@ export class MediaProcessor {
       videoCodec: videoStream.codec_name || 'unknown',
       audioCodec: audioStream ? audioStream.codec_name || null : null,
       sizeBytes,
-      formatName: format.format_name || 'unknown',
+      formatName,
     };
   }
 

@@ -3,6 +3,8 @@ import { UploadsService } from '../../apps/api/src/modules/uploads/uploads.servi
 import { RunsService } from '../../apps/api/src/modules/runs/runs.service';
 import { ApprovalsService } from '../../apps/api/src/modules/approvals/approvals.service';
 import { PublishService } from '../../apps/api/src/modules/publish/publish.service';
+import { MediaProcessor } from '../../packages/media/src/index.ts';
+import { redactSensitiveData } from '../../packages/observability/src/index.ts';
 
 export class ForbiddenDemoModeException extends Error {
   constructor() {
@@ -101,5 +103,33 @@ describe('Advanced Exception & System Fault Tolerance Suite (MF-701..MF-707)', (
     await expect(
       approvalsService.rejectRun(WORKSPACE_ID, run.id, USER_PRODUCER, longReason)
     ).rejects.toThrow();
+  });
+
+  it('Exception Test 7: Spec 19 File & Worker Security - Whitelist, SSRF Prevention, and Log Redaction', () => {
+    // 1. SSRF Remote URL Prevention
+    expect(() => {
+      MediaProcessor.parseProbeData({ streams: [{ codec_type: 'video' }], format: { duration: '10', format_name: 'mov' } }, 100, 'http://169.254.169.254/latest/meta-data/');
+    }).toThrow('SECURITY_ERROR: Remote URLs are strictly prohibited to prevent SSRF vulnerability');
+
+    // 2. Container Whitelist (from ffprobe, not extension)
+    expect(() => {
+      MediaProcessor.parseProbeData({ streams: [{ codec_type: 'video' }], format: { duration: '10', format_name: 'exe_payload' } }, 100, '/tmp/malicious.exe');
+    }).toThrow("UNSUPPORTED_CODEC: Container format 'exe_payload' is not in allowed whitelist");
+
+    // 3. Log Redaction Security
+    const sensitivePayload = {
+      authorization: 'Bearer secret_jwt_token',
+      cookie: 'session_id=secret_cookie',
+      accessKey: 'MINIO_SECRET_KEY_123',
+      presignedUrl: 'https://minio.local/bucket/video.mp4?X-Amz-Signature=secret_sig_123&X-Amz-Credential=cred_123',
+      normalField: 'public_data',
+    };
+
+    const redacted = redactSensitiveData(sensitivePayload);
+    expect(redacted.authorization).toBe('[REDACTED]');
+    expect(redacted.cookie).toBe('[REDACTED]');
+    expect(redacted.accessKey).toBe('[REDACTED]');
+    expect(redacted.presignedUrl).toBe('https://minio.local/bucket/video.mp4?[REDACTED_PRESIGNED_QUERY]');
+    expect(redacted.normalField).toBe('public_data');
   });
 });
