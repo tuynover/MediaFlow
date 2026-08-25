@@ -7,6 +7,7 @@ import {
   integer,
   numeric,
   jsonb,
+  boolean,
   bigserial,
   primaryKey,
   uniqueIndex,
@@ -259,3 +260,24 @@ export const outboxEvents = pgTable('outbox_events', {
   lastError: text('last_error'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// 14. Demo Faults (Spec 15.2: Tenant-scoped fault configuration table)
+export const demoFaults = pgTable(
+  'demo_faults',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+    projectId: uuid('project_id').references(() => mediaProjects.id),
+    runId: uuid('run_id').references(() => processingRuns.id),
+    scenario: text('scenario').notNull(),
+    step: text('step'),
+    threshold: integer('threshold').notNull().default(50),
+    remainingUses: integer('remaining_uses').notNull().default(1),
+    enabled: boolean('enabled').notNull().default(true),
+    createdBy: uuid('created_by').notNull().references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceScenarioIdx: index('demo_faults_workspace_scenario_idx').on(table.workspaceId, table.scenario),
+  })
+);

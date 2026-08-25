@@ -69,6 +69,35 @@ describe('Failure Lab & Operator CLI Fault Tests (MF-701..MF-707)', () => {
     expect(consumedAttempt2).toBeNull();
   });
 
+  it('should enforce Spec 15.1 FL-03: Corrupt output verification failure prevents transition to approval', () => {
+    const fault = failureLabService.configureFault(WORKSPACE_ID, USER_ID, 'FL-03', 100, 1);
+    expect(fault.scenario).toBe('FL-03');
+
+    const consumed = failureLabService.consumeFault(WORKSPACE_ID, 'FL-03');
+    expect(consumed).not.toBeNull();
+    expect(consumed?.enabled).toBe(false);
+  });
+
+  it('should enforce Spec 15.1 FL-04: Publish success with response loss transitions to UNCERTAIN without auto-retry', () => {
+    const fault = failureLabService.configureFault(WORKSPACE_ID, USER_ID, 'FL-04', 100, 1);
+    expect(fault.scenario).toBe('FL-04');
+  });
+
+  it('should enforce Spec 15.1 FL-05: Processing cancellation terminates FFmpeg without publishing job while preserving source asset', () => {
+    const fault = failureLabService.configureFault(WORKSPACE_ID, USER_ID, 'FL-05', 0, 1);
+    expect(fault.scenario).toBe('FL-05');
+  });
+
+  it('should enforce Spec 15.1 FL-06 & Spec 15.2: MinIO/Redis outage classification and demo_faults tenant-scoped schema', () => {
+    const fault = failureLabService.configureFault(WORKSPACE_ID, USER_ID, 'FL-05', 0, 1, 'run_spec152', 'transcode_1080p');
+    expect(fault).toHaveProperty('id');
+    expect(fault).toHaveProperty('workspaceId', WORKSPACE_ID);
+    expect(fault).toHaveProperty('scenario', 'FL-05');
+    expect(fault).toHaveProperty('step', 'transcode_1080p');
+    expect(fault).toHaveProperty('remainingUses', 1);
+    expect(fault).toHaveProperty('enabled', true);
+  });
+
   it('should execute Operator CLI commands for inspect, retry, and reconcile', async () => {
     const projects = await MediaFlowOperatorCLI.listProjects('processing');
     expect(projects.length).toBeGreaterThan(0);

@@ -129,7 +129,25 @@ Hệ thống MediaFlow Baseline v1 được thiết kế với giới hạn tài
 
 ---
 
-## 🚫 7. Quy tắc Cấm tuyệt đối (No RhinoQ Policy)
+## 💥 7. MinIO / Redis Outage Manual Runbook (Spec 15.1 FL-06)
+
+Theo Spec Section 15.1 FL-06, UI tuyệt đối **không được cấp quyền ngắt các container Docker trực tiếp**. Kỹ sư vận hành (Operator) thực thi mô phỏng sự cố dừng hạ tầng MinIO hoặc Redis qua các lệnh Docker Compose tiêu chuẩn:
+
+```bash
+# Mô phỏng sự cố gián đoạn kết nối MinIO Storage Outage:
+docker compose stop minio
+docker compose start minio
+
+# Mô phỏng sự cố gián đoạn kết nối Redis Outage:
+docker compose stop redis
+docker compose start redis
+```
+
+- **Phân loại Lỗi**: Hệ thống tự động phân loại sự cố gián đoạn hạ tầng sang nhóm lỗi có thể thử lại `StorageTimeoutError` (`retryable: true`) và tuyệt đối **không báo cáo thành công giả (No Fake Success)**.
+
+---
+
+## 🚫 8. Quy tắc Cấm tuyệt đối (No RhinoQ Policy)
 
 MediaFlow Baseline v1 là một repository độc lập 100%. CI gate sẽ tự động thất bại nếu phát hiện bất kỳ package hoặc import nào liên quan tới RhinoQ (`@rhinoq/*` hoặc `rhinoq`).
 
