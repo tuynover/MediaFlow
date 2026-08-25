@@ -59,14 +59,22 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       setFile(selectedFile);
       const url = URL.createObjectURL(selectedFile);
       setPreviewUrl(url);
-      // Clear old resumable session box when user selects a new file
-      localStorage.removeItem(storageKey);
-      setResumableSession(null);
+      // Clear old resumable session box ONLY if selected file name is different
+      if (resumableSession && resumableSession.filename !== selectedFile.name) {
+        localStorage.removeItem(storageKey);
+        setResumableSession(null);
+      }
     }
   };
 
   const resumeUpload = async () => {
     if (!resumableSession) return;
+    if (!file && !previewUrl) {
+      alert(`Vui lòng chọn tệp "${resumableSession.filename}" bằng ô Choose File để tiếp tục Resume và tạo Thumbnail!`);
+      const fileInput = document.getElementById(`file-input-${projectId}`);
+      if (fileInput) fileInput.click();
+      return;
+    }
     setUploading(true);
     setProgress(40);
     setStatusMessage(`🔄 Khôi phục phiên Upload dở dang: "${resumableSession.filename}"...`);

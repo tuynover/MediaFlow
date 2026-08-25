@@ -637,6 +637,10 @@ export default function App() {
                           workspaceId={currentUser?.workspaceId || ''}
                           userId={currentUser?.id || ''}
                           onUploadComplete={(url, assetId) => {
+                            if (url) {
+                              if (assetId) localStorage.setItem(`mediaflow_videourl_${assetId}`, url);
+                              localStorage.setItem(`mediaflow_videourl_${p.id}`, url);
+                            }
                             setVideoUrls((prev) => ({
                               ...prev,
                               [p.id]: url,
@@ -780,7 +784,13 @@ export default function App() {
                                         <div style={{ marginBottom: '10px', background: '#020617', padding: '8px', borderRadius: '6px' }}>
                                           <video
                                             controls
-                                            src={videoUrls[asset.id] || videoUrls[p.id] || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'}
+                                            src={
+                                              videoUrls[asset.id] ||
+                                              videoUrls[p.id] ||
+                                              localStorage.getItem(`mediaflow_videourl_${asset.id}`) ||
+                                              localStorage.getItem(`mediaflow_videourl_${p.id}`) ||
+                                              'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+                                            }
                                             style={{ width: '100%', maxHeight: '240px', borderRadius: '4px', backgroundColor: '#000' }}
                                           />
                                         </div>
