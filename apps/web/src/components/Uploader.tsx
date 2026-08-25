@@ -44,6 +44,13 @@ function getSessionFromIndexedDB(key: string): Promise<any> {
         getReq.onsuccess = () => resolve(getReq.result || null);
         getReq.onerror = () => resolve(null);
       };
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
 function deleteSessionFromIndexedDB(key: string) {
   try {
     const request = indexedDB.open('mediaflow_db', 1);

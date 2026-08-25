@@ -71,7 +71,8 @@ export class UploadsService {
 
     let providerUploadId = uploadId;
     try {
-      providerUploadId = await this.storageAdapter.createMultipartUpload(bucket, objectKey, mediaType);
+      const createdId = await this.storageAdapter.createMultipartUpload(bucket, objectKey, mediaType);
+      if (createdId) providerUploadId = createdId as any;
     } catch (err) {
       // Dev environment storage adapter fallback
     }
