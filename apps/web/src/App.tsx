@@ -560,16 +560,24 @@ export default function App() {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                     {/* FFmpeg Extracted Thumbnail Frame */}
-                                    <div style={{ position: 'relative' }}>
-                                      <img
-                                        src="https://picsum.photos/160/90"
-                                        alt="FFmpeg Thumbnail"
-                                        style={{ width: '120px', height: '68px', borderRadius: '6px', border: '1px solid #38bdf8', objectFit: 'cover' }}
-                                      />
-                                      <span style={{ position: 'absolute', bottom: '4px', right: '4px', background: 'rgba(0,0,0,0.75)', color: '#38bdf8', fontSize: '10px', padding: '1px 4px', borderRadius: '3px', fontWeight: 'bold' }}>
-                                        JPEG Frame
-                                      </span>
-                                    </div>
+                                      {/* Dynamic Asset Media Frame Icon / Thumbnail Placeholder */}
+                                      <div
+                                        style={{
+                                          width: '120px',
+                                          height: '68px',
+                                          borderRadius: '6px',
+                                          border: '1px solid #38bdf8',
+                                          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          color: '#38bdf8',
+                                        }}
+                                      >
+                                        <div style={{ fontSize: '20px' }}>🎬</div>
+                                        <span style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>MinIO Source Frame</span>
+                                      </div>
                                     <div>
                                       <strong style={{ color: '#ecfdf5', fontSize: '14px' }}>📹 {asset.originalFilename}</strong>
                                       <span style={{ color: '#94a3b8', marginLeft: '10px', fontSize: '12px' }}>({(asset.sizeBytes / (1024 * 1024)).toFixed(2)} MB)</span>
