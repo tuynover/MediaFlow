@@ -20,6 +20,18 @@ export class PublishController {
     );
   }
 
+  @Post('runs/:runId/publish')
+  async triggerPublishForRun(@Req() request: any, @Param('runId') runId: string, @Body() body: any) {
+    const workspaceId = request.headers['x-workspace-id'] || 'a0000000-0000-7000-a000-000000000001';
+    return this.publishService.triggerPublish(
+      workspaceId,
+      runId,
+      body.sourceAssetId || 'asset_demo',
+      body.profile || '720p',
+      body.simulateResponseLoss || false
+    );
+  }
+
   @Post('publish/:operationId/reconcile')
   async reconcileOperation(@Req() request: any, @Param('operationId') operationId: string, @Body() body: any) {
     const workspaceId = request.headers['x-workspace-id'] || 'a0000000-0000-7000-a000-000000000001';

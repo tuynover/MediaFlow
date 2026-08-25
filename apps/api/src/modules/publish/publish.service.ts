@@ -1,9 +1,5 @@
-export class BadRequestException extends Error {
-  constructor(public errorResponse: any) {
-    super(errorResponse?.error?.message || 'Bad Request');
-    this.name = 'BadRequestException';
-  }
-}
+import { BadRequestException } from '@nestjs/common';
+import { RunsService } from '../runs/runs.service';
 
 export class NotFoundException extends Error {
   constructor(public errorResponse: any) {
@@ -50,6 +46,15 @@ export class PublishService {
     profile: string,
     simulateResponseLoss = false
   ): Promise<PublishOperation> {
+    const run = RunsService.getRunById(runId);
+    if (run && (run.status === 'cancelled' || run.status === 'cancelling' || run.cancelRequestedAt !== null)) {
+      throw new BadRequestException({
+        error: {
+          code: 'RUN_CANCELLED',
+          message: 'Publishing is strictly forbidden after processing cancellation has been requested or accepted',
+        },
+      });
+    }
     const destinationBucket = process.env.MINIO_DELIVERY_BUCKET || 'mediaflow-delivery';
     const destinationKey = `workspaces/${workspaceId}/delivery/videos/${profile}.mp4`;
     const idempotencyKey = `publish:${workspaceId}:${runId}:${sourceAssetId}:${profile}:${simulateResponseLoss ? 'sim' : 'norm'}`;

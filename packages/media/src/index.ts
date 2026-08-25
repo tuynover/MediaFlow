@@ -78,4 +78,49 @@ export class MediaProcessor {
     }
     return null;
   }
+
+  // Spec 5.4: Execute FFmpeg with Cooperative Cancellation (Polling every 1s, SIGTERM -> 10s -> SIGKILL)
+  static async executeFFmpegWithCancellation(
+    args: string[],
+    cancelChecker: () => boolean,
+    pollIntervalMs = 1000
+  ): Promise<void> {
+    const { spawn } = await import('node:child_process');
+    return new Promise((resolve, reject) => {
+      const child = spawn('ffmpeg', args);
+      let killed = false;
+
+      const timer = setInterval(() => {
+        if (cancelChecker() && !killed) {
+          killed = true;
+          clearInterval(timer);
+          // Send SIGTERM first according to Spec 5.4
+          child.kill('SIGTERM');
+          // Wait max 10 seconds before SIGKILL if child has not exited
+          const killTimer = setTimeout(() => {
+            try {
+              child.kill('SIGKILL');
+            } catch (e) {
+              // Ignore process cleanup errors
+            }
+          }, 10000);
+          child.on('exit', () => clearTimeout(killTimer));
+          reject(new Error('CANCELLED: FFmpeg process terminated by user cancellation request (SIGTERM sent)'));
+        }
+      }, pollIntervalMs);
+
+      child.on('exit', (code) => {
+        clearInterval(timer);
+        if (!killed) {
+          if (code === 0) resolve();
+          else reject(new Error(`FFmpeg process exited with code ${code}`));
+        }
+      });
+
+      child.on('error', (err) => {
+        clearInterval(timer);
+        if (!killed) reject(err);
+      });
+    });
+  }
 }
