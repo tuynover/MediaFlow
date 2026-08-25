@@ -41,6 +41,7 @@ export default function App() {
   const [activeRuns, setActiveRuns] = useState<Record<string, Run>>({});
   const [publishOps, setPublishOps] = useState<Record<string, PublishOp>>({});
   const [rejectionReason, setRejectionReason] = useState<Record<string, string>>({});
+  const [rejectionError, setRejectionError] = useState<Record<string, string>>({});
 
   const seedUsers: SeedUser[] = [
     {
@@ -74,12 +75,16 @@ export default function App() {
 
   useEffect(() => {
     if (currentUser) {
-      // Reset active run/op states when switching tenants to avoid workspace state leaks
+      // Reset active run/op states when switching tenants or roles to avoid state leaks
       setActiveRuns({});
       setPublishOps({});
+      setRejectionError({});
       fetchProjects();
     }
   }, [currentUser]);
+
+  const isProducer = currentUser?.roles.includes('producer');
+  const isReviewer = currentUser?.roles.includes('reviewer');
 
   const fetchProjects = async () => {
     if (!currentUser) return;
@@ -102,7 +107,7 @@ export default function App() {
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProjectName.trim() || !currentUser) return;
+    if (!newProjectName.trim() || !currentUser || !isProducer) return;
 
     try {
       const res = await fetch('/api/v1/projects', {
@@ -124,7 +129,7 @@ export default function App() {
   };
 
   const handleProcessRun = async (projectId: string) => {
-    if (!currentUser) return;
+    if (!currentUser || !isProducer) return;
     try {
       const res = await fetch(`/api/v1/projects/${projectId}/process`, {
         method: 'POST',
@@ -144,7 +149,7 @@ export default function App() {
   };
 
   const handleApprove = async (runId: string, projectId: string) => {
-    if (!currentUser) return;
+    if (!currentUser || !isReviewer) return;
     await fetch(`/api/v1/runs/${runId}/approve`, {
       method: 'POST',
       headers: {
@@ -152,7 +157,7 @@ export default function App() {
         'x-workspace-id': currentUser.workspaceId,
         'x-user-id': currentUser.id,
       },
-      body: JSON.stringify({ note: 'Approved via Web UI' }),
+      body: JSON.stringify({ note: 'Approved via Reviewer Inbox' }),
     });
     fetchProjects();
     setActiveRuns((prev) => {
@@ -163,8 +168,16 @@ export default function App() {
   };
 
   const handleReject = async (runId: string, projectId: string) => {
-    if (!currentUser) return;
-    const reason = rejectionReason[runId] || 'Color grading does not match brand guidelines.';
+    if (!currentUser || !isReviewer) return;
+    const reason = rejectionReason[runId] || '';
+
+    // Validate 10-1000 char reason requirement according to Spec Section 5.3 & 10.4
+    if (reason.length < 10) {
+      setRejectionError({ ...rejectionError, [runId]: '❌ Lý do từ chối phải dài từ 10 đến 1000 ký tự!' });
+      return;
+    }
+    setRejectionError({ ...rejectionError, [runId]: '' });
+
     await fetch(`/api/v1/runs/${runId}/reject`, {
       method: 'POST',
       headers: {
@@ -220,10 +233,10 @@ export default function App() {
           NestJS Backend + React Vite Frontend — Realtime Media Processing Portal
         </p>
 
-        {/* Tenant Switcher */}
+        {/* Tenant & Role Switcher */}
         <div style={{ marginTop: '20px', background: '#1e293b', padding: '15px', borderRadius: '8px' }}>
           <label htmlFor="seed-user-select" style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
-            🔒 Chuyển đổi Tài khoản Seed (Kiểm thử Tenant Isolation):
+            🔒 Chuyển đổi Vai trò & Tài khoản (Kiểm thử Role-Based Authorization & Tenant Isolation):
           </label>
           <select
             id="seed-user-select"
@@ -249,53 +262,66 @@ export default function App() {
               </option>
             ))}
           </select>
-          <div style={{ marginTop: '8px', fontSize: '12px', color: '#cbd5e1' }}>
-            Current Workspace ID: <code style={{ color: '#f59e0b' }}>{currentUser?.workspaceId}</code>
+          <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#cbd5e1' }}>
+            <span>Current Workspace ID: <code style={{ color: '#f59e0b' }}>{currentUser?.workspaceId}</code></span>
+            <span>Quyền hạn khả dụng (Role): <strong style={{ color: isProducer ? '#38bdf8' : '#10b981' }}>{currentUser?.roles.join(', ').toUpperCase()}</strong></span>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main>
-        {/* Create Project Form */}
-        <section style={{ background: '#1e293b', padding: '20px', borderRadius: '8px', marginBottom: '30px' }}>
-          <h2 style={{ fontSize: '18px', marginTop: 0, color: '#f8fafc' }}>➕ Tạo Media Project Mới</h2>
-          <form onSubmit={handleCreateProject} style={{ display: 'flex', gap: '10px' }}>
-            <label htmlFor="new-project-input" style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}>
-              Tên Project Video
-            </label>
-            <input
-              id="new-project-input"
-              name="new_project_name"
-              type="text"
-              placeholder="Nhập tên project video (ví dụ: TVC Summer Campaign)..."
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              style={{
-                flex: 1,
-                padding: '10px 14px',
-                borderRadius: '6px',
-                border: '1px solid #475569',
-                background: '#0f172a',
-                color: '#fff',
-              }}
-            />
-            <button
-              type="submit"
-              style={{
-                padding: '10px 20px',
-                borderRadius: '6px',
-                border: 'none',
-                background: '#0284c7',
-                color: '#fff',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-              }}
-            >
-              Tạo Project
-            </button>
-          </form>
-        </section>
+        {/* PRODUCER ONLY SECTION: Create Project Form */}
+        {isProducer && (
+          <section style={{ background: '#1e293b', padding: '20px', borderRadius: '8px', marginBottom: '30px' }}>
+            <h2 style={{ fontSize: '18px', marginTop: 0, color: '#f8fafc' }}>➕ [Producer Panel] Tạo Media Project Mới</h2>
+            <form onSubmit={handleCreateProject} style={{ display: 'flex', gap: '10px' }}>
+              <label htmlFor="new-project-input" style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}>
+                Tên Project Video
+              </label>
+              <input
+                id="new-project-input"
+                name="new_project_name"
+                type="text"
+                placeholder="Nhập tên project video (ví dụ: TVC Summer Campaign)..."
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  border: '1px solid #475569',
+                  background: '#0f172a',
+                  color: '#fff',
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: '#0284c7',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                }}
+              >
+                Tạo Project
+              </button>
+            </form>
+          </section>
+        )}
+
+        {/* REVIEWER ONLY BANNER: Reviewer Inbox Header */}
+        {isReviewer && (
+          <section style={{ background: '#064e3b', padding: '15px 20px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #10b981' }}>
+            <h2 style={{ fontSize: '18px', marginTop: 0, color: '#ecfdf5' }}>📥 [Reviewer Inbox] Danh sách Bản xem trước chờ Phê duyệt</h2>
+            <p style={{ margin: 0, fontSize: '13px', color: '#a7f3d0' }}>
+              Bạn đang ở giao diện Reviewer. Chỉ Reviewer mới có quyền bấm <strong>Approve (Chấp nhận)</strong> hoặc <strong>Reject (Từ chối)</strong> bản nén video.
+            </p>
+          </section>
+        )}
 
         {/* Project List */}
         <section>
@@ -307,7 +333,9 @@ export default function App() {
             <p style={{ color: '#94a3b8' }}>Đang tải danh sách project...</p>
           ) : projects.length === 0 ? (
             <div style={{ background: '#1e293b', padding: '20px', borderRadius: '8px', textAlign: 'center', color: '#94a3b8' }}>
-              Chưa có project nào thuộc workspace này. Bạn hãy gõ tên ở trên và bấm "Tạo Project"!
+              {isProducer
+                ? 'Chưa có project nào thuộc workspace này. Bạn hãy gõ tên ở trên và bấm "Tạo Project"!'
+                : 'Hiện tại chưa có đợt xử lý video nào cần Reviewer duyệt trong Workspace này.'}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -349,35 +377,39 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Component Multipart Uploader */}
-                    <div style={{ marginTop: '15px' }}>
-                      <Uploader
-                        projectId={p.id}
-                        workspaceId={currentUser?.workspaceId || ''}
-                        userId={currentUser?.id || ''}
-                        onUploadComplete={() => fetchProjects()}
-                      />
-                    </div>
+                    {/* PRODUCER ONLY: Component Multipart Uploader */}
+                    {isProducer && (
+                      <div style={{ marginTop: '15px' }}>
+                        <Uploader
+                          projectId={p.id}
+                          workspaceId={currentUser?.workspaceId || ''}
+                          userId={currentUser?.id || ''}
+                          onUploadComplete={() => fetchProjects()}
+                        />
+                      </div>
+                    )}
 
-                    {/* Action & Run Progress */}
-                    <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #334155', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                      <button
-                        onClick={() => handleProcessRun(p.id)}
-                        style={{
-                          padding: '8px 16px',
-                          background: '#10b981',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        ⚡ Khởi chạy Xử lý (Process Video)
-                      </button>
-                    </div>
+                    {/* PRODUCER ONLY: Action & Run Process Button */}
+                    {isProducer && (
+                      <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #334155', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <button
+                          onClick={() => handleProcessRun(p.id)}
+                          style={{
+                            padding: '8px 16px',
+                            background: '#10b981',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          ⚡ [Producer] Khởi chạy Xử lý (Process Video)
+                        </button>
+                      </div>
+                    )}
 
-                    {/* Live Progress Bar */}
+                    {/* Live Progress Bar & Reviewer Inbox Panel */}
                     {activeRun && (
                       <div style={{ marginTop: '15px', background: '#0f172a', padding: '15px', borderRadius: '6px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
@@ -388,33 +420,50 @@ export default function App() {
                           <div style={{ width: `${activeRun.progressPercent}%`, background: '#10b981', height: '100%', transition: 'width 0.4s ease' }} />
                         </div>
 
-                        {/* Reviewer Action Buttons */}
-                        {activeRun.status === 'awaiting_approval' && (
-                          <div style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <button
-                              onClick={() => handleApprove(activeRun.id, p.id)}
-                              style={{ padding: '8px 14px', background: '#059669', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                            >
-                              ✅ Reviewer Approve
-                            </button>
-                            <label htmlFor={`reject-reason-${activeRun.id}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}>
-                              Lý do từ chối
-                            </label>
-                            <input
-                              id={`reject-reason-${activeRun.id}`}
-                              name={`reject_reason_${activeRun.id}`}
-                              type="text"
-                              placeholder="Lý do từ chối (10-1000 ký tự)..."
-                              value={rejectionReason[activeRun.id] || ''}
-                              onChange={(e) => setRejectionReason({ ...rejectionReason, [activeRun.id]: e.target.value })}
-                              style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #475569', background: '#1e293b', color: '#fff' }}
-                            />
-                            <button
-                              onClick={() => handleReject(activeRun.id, p.id)}
-                              style={{ padding: '8px 14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                            >
-                              ❌ Reviewer Reject
-                            </button>
+                        {/* REVIEWER ONLY PANEL: Approve / Reject Controls */}
+                        {activeRun.status === 'awaiting_approval' && isReviewer && (
+                          <div style={{ marginTop: '15px', background: '#1e293b', padding: '12px', borderRadius: '6px', border: '1px solid #059669' }}>
+                            <div style={{ fontWeight: 'bold', color: '#10b981', marginBottom: '10px', fontSize: '14px' }}>
+                              📥 Reviewer Approval Control Panel:
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                              <button
+                                onClick={() => handleApprove(activeRun.id, p.id)}
+                                style={{ padding: '8px 14px', background: '#059669', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                              >
+                                ✅ Approve (Duyệt bàn giao)
+                              </button>
+                              <label htmlFor={`reject-reason-${activeRun.id}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}>
+                                Lý do từ chối
+                              </label>
+                              <input
+                                id={`reject-reason-${activeRun.id}`}
+                                name={`reject_reason_${activeRun.id}`}
+                                type="text"
+                                placeholder="Nhập lý do từ chối (bắt buộc từ 10 đến 1000 ký tự)..."
+                                value={rejectionReason[activeRun.id] || ''}
+                                onChange={(e) => setRejectionReason({ ...rejectionReason, [activeRun.id]: e.target.value })}
+                                style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff' }}
+                              />
+                              <button
+                                onClick={() => handleReject(activeRun.id, p.id)}
+                                style={{ padding: '8px 14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                              >
+                                ❌ Reject (Từ chối)
+                              </button>
+                            </div>
+                            {rejectionError[activeRun.id] && (
+                              <div style={{ marginTop: '8px', fontSize: '12px', color: '#ef4444', fontWeight: 'bold' }}>
+                                {rejectionError[activeRun.id]}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* PRODUCER VIEW WHEN AWAITING APPROVAL */}
+                        {activeRun.status === 'awaiting_approval' && isProducer && (
+                          <div style={{ marginTop: '10px', fontSize: '13px', color: '#f59e0b', fontWeight: 'bold' }}>
+                            ⏳ Video đã nén và kiểm chứng thành công. Đang chờ Reviewer duyệt! (Vui lòng chọn tài khoản Reviewer từ menu trên để duyệt).
                           </div>
                         )}
 
