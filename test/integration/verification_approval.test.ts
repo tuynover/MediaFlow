@@ -12,15 +12,27 @@ describe('Verification & Reviewer Approval Integration Tests (MF-501..MF-506)', 
     service = new ApprovalsService();
   });
 
-  it('should run verification engine and pass for valid H.264 output', () => {
+  it('should run verification engine and pass all 11 checks for valid H.264 output', () => {
     const outputMeta = {
       videoCodec: 'h264',
+      pixFmt: 'yuv420p',
       sizeBytes: 15 * 1024 * 1024,
+      sha256: 'a1b2c3d4e5f67890a1b2c3d4e5f67890a1b2c3d4e5f67890a1b2c3d4e5f67890',
+      ffprobeParsable: true,
+      hasVideoStream: true,
+      durationDriftSec: 0.2,
+      sourceDurationSec: 120.0,
+      width: 1920,
+      height: 1080,
+      sourceHasAudio: true,
+      audioCodec: 'aac',
+      thumbnailFormat: 'jpeg',
+      thumbnailSizeBytes: 2048,
     };
 
     const verification = service.verifyProcessedOutput(WORKSPACE_ID, RUN_ID, outputMeta);
     expect(verification.status).toBe('passed');
-    expect(verification.checks.length).toBe(3);
+    expect(verification.checks.length).toBe(11);
     expect(verification.checks.every((c) => c.status === 'passed')).toBe(true);
   });
 
