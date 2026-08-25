@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { FailureLabService } from '../../apps/api/src/modules/failure-lab/failure-lab.service';
+import { validateEnvironmentConfig } from '../../apps/api/src/main';
 import { MediaFlowOperatorCLI } from '../../apps/ops/src/cli';
 
 describe('Failure Lab & Operator CLI Fault Tests (MF-701..MF-707)', () => {
@@ -16,6 +17,17 @@ describe('Failure Lab & Operator CLI Fault Tests (MF-701..MF-707)', () => {
     expect(() => {
       FailureLabService.validateDemoEnvironment('true', 'production');
     }).toThrow('SECURITY_VIOLATION: MEDIAFLOW_DEMO_MODE is forbidden in production environment!');
+
+    // Test main.ts validateEnvironmentConfig
+    const prevDemo = process.env.MEDIAFLOW_DEMO_MODE;
+    const prevEnv = process.env.NODE_ENV;
+    process.env.MEDIAFLOW_DEMO_MODE = 'true';
+    process.env.NODE_ENV = 'production';
+
+    expect(() => validateEnvironmentConfig()).toThrow('FATAL: MEDIAFLOW_DEMO_MODE=true is strictly prohibited in NODE_ENV=production!');
+
+    process.env.MEDIAFLOW_DEMO_MODE = prevDemo;
+    process.env.NODE_ENV = prevEnv;
   });
 
   it('should allow demo fault configuration in non-production environment', () => {
