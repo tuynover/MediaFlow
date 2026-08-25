@@ -40,6 +40,9 @@ export interface PublishOperation {
 const PUBLISH_OPS: PublishOperation[] = [];
 
 export class PublishService {
+  static clearAllPublishOps() {
+    PUBLISH_OPS.length = 0;
+  }
   async triggerPublish(
     workspaceId: string,
     runId: string,

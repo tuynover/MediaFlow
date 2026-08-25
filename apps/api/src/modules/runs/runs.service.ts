@@ -32,6 +32,12 @@ const EVENTS: { id: number; workspaceId: string; projectId: string; runId: strin
 export class RunsService {
   private dispatcher = new OutboxDispatcher();
 
+  static clearAllRuns() {
+    RUNS.length = 0;
+    OUTBOX.length = 0;
+    EVENTS.length = 0;
+  }
+
   static updateRunStatus(runId: string, status: any, reason?: string) {
     const run = RUNS.find((r) => r.id === runId);
     if (run) {

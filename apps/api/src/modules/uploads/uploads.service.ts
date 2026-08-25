@@ -181,6 +181,11 @@ export class UploadsService {
       .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
   }
 
+  static clearAllUploads() {
+    UPLOAD_SESSIONS.length = 0;
+    UPLOADED_ASSETS.length = 0;
+  }
+
   async deleteAsset(workspaceId: string, projectId: string, assetId: string) {
     const asset = UPLOADED_ASSETS.find((a) => a.id === assetId && a.workspaceId === workspaceId && a.projectId === projectId);
     if (!asset) {

@@ -1,5 +1,8 @@
 import { Controller, Post, Get, Patch, Param, Body, Query, Req, BadRequestException } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
+import { UploadsService } from '../uploads/uploads.service';
+import { RunsService } from '../runs/runs.service';
+import { PublishService } from '../publish/publish.service';
 import { CreateProjectSchema } from '@mediaflow/contracts';
 import { z } from 'zod';
 
@@ -10,6 +13,15 @@ const UpdateProjectSchema = z.object({
 @Controller('api/v1/projects')
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
+
+  @Post('clear-all')
+  async clearAllProjectsData() {
+    ProjectsService.clearAllProjects();
+    UploadsService.clearAllUploads();
+    RunsService.clearAllRuns();
+    PublishService.clearAllPublishOps();
+    return { success: true, message: 'Wiped all projects, uploads, runs, and publish ops.' };
+  }
 
   @Post()
   async createProject(@Req() request: any, @Body() body: any) {

@@ -77,6 +77,10 @@ export class ProjectsService {
     return project;
   }
 
+  static clearAllProjects() {
+    PROJECTS.length = 0;
+  }
+
   async updateProjectName(workspaceId: string, projectId: string, newName: string): Promise<MediaProject> {
     const project = await this.getProjectById(workspaceId, projectId);
     project.name = newName;
