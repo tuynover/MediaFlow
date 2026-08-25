@@ -69,11 +69,11 @@ export class UploadsService {
     const objectKey = `workspaces/${workspaceId}/projects/${projectId}/uploads/${uploadId}/${crypto.randomUUID()}`;
     const bucket = process.env.MINIO_SOURCE_BUCKET || 'mediaflow-source';
 
-    let providerUploadId = `mock_provider_upload_${uploadId}`;
+    let providerUploadId = uploadId;
     try {
       providerUploadId = await this.storageAdapter.createMultipartUpload(bucket, objectKey, mediaType);
     } catch (err) {
-      // Fallback for dev mode without active MinIO container
+      // Dev environment storage adapter fallback
     }
 
     const session: UploadSession = {

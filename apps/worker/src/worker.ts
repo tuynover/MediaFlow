@@ -84,8 +84,8 @@ if (process.env.NODE_ENV !== 'test') {
         const result = await pipeline.processRun({
           runId: job.data.runId,
           workspaceId: job.data.workspaceId,
-          projectId: 'proj_demo',
-          sourcePath: 'sample_video.mp4',
+          projectId: job.data.projectId,
+          sourcePath: job.data.sourcePath || job.data.objectKey,
         });
         return result;
       },
