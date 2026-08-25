@@ -149,6 +149,7 @@ const VideoThumbnail = ({ videoUrl, filename, assetId }: { videoUrl?: string; fi
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<SeedUser | null>(null);
+  const [activeTab, setActiveTab] = useState<'projects' | 'reviewer_inbox' | 'operator_attention'>('projects');
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectAssets, setProjectAssets] = useState<Record<string, UploadedAsset[]>>({});
   const [newProjectName, setNewProjectName] = useState('');
@@ -487,6 +488,55 @@ export default function App() {
             <span>Quyền hạn khả dụng (Role): <strong style={{ color: isProducer ? '#38bdf8' : '#10b981' }}>{currentUser?.roles.join(', ').toUpperCase()}</strong></span>
           </div>
         </div>
+
+        {/* Spec 16.1 Screen Navigation Bar */}
+        <nav style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => setActiveTab('projects')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              border: 'none',
+              background: activeTab === 'projects' ? '#0284c7' : '#1e293b',
+              color: '#fff',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontSize: '13px',
+            }}
+          >
+            📁 Projects Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('reviewer_inbox')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              border: 'none',
+              background: activeTab === 'reviewer_inbox' ? '#059669' : '#1e293b',
+              color: '#fff',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontSize: '13px',
+            }}
+          >
+            📥 Reviewer Inbox
+          </button>
+          <button
+            onClick={() => setActiveTab('operator_attention')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              border: 'none',
+              background: activeTab === 'operator_attention' ? '#d97706' : '#1e293b',
+              color: '#fff',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontSize: '13px',
+            }}
+          >
+            🚨 Operator Attention
+          </button>
+        </nav>
       </header>
 
       {/* Failure Lab Drawer (Spec Section 15 & 16.1) */}
@@ -523,8 +573,66 @@ export default function App() {
 
       {/* Main Content */}
       <main>
+        {/* Spec 16.1 Screen 5: Reviewer Inbox Tab */}
+        {activeTab === 'reviewer_inbox' && (
+          <section style={{ background: '#064e3b', padding: '20px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #10b981' }}>
+            <h2 style={{ fontSize: '18px', marginTop: 0, color: '#ecfdf5' }}>📥 [Reviewer Inbox] Danh Sách Các Run Đang Chờ Phê Duyệt</h2>
+            <p style={{ fontSize: '13px', color: '#a7f3d0', marginBottom: '15px' }}>
+              Danh sách hiển thị toàn bộ các bản xem trước video (awaiting_approval) cần Reviewer xem xét và đưa ra quyết định Approve/Reject.
+            </p>
+            <div style={{ background: '#020617', padding: '15px', borderRadius: '6px' }}>
+              {projects.flatMap((p) => (projectRuns[p.id] || []).filter((r) => r.status === 'awaiting_approval')).length === 0 ? (
+                <p style={{ color: '#94a3b8', margin: 0 }}>Không có lượt chạy nào đang ở trạng thái awaiting_approval trong Workspace này.</p>
+              ) : (
+                projects.flatMap((p) =>
+                  (projectRuns[p.id] || [])
+                    .filter((r) => r.status === 'awaiting_approval')
+                    .map((r) => (
+                      <div key={r.id} style={{ borderBottom: '1px solid #1e293b', paddingBottom: '10px', marginBottom: '10px' }}>
+                        <div style={{ fontWeight: 'bold', color: '#34d399' }}>Project: {p.name} | Run ID: {r.id}</div>
+                        <div style={{ fontSize: '12px', color: '#cbd5e1' }}>Trạng thái: <strong>AWAITING_APPROVAL</strong></div>
+                        <button onClick={() => setActiveTab('projects')} style={{ marginTop: '6px', padding: '4px 10px', background: '#059669', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
+                          👁️ Mở Chi Tiết Project Để Phê Duyệt
+                        </button>
+                      </div>
+                    ))
+                )
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Spec 16.1 Screen 6: Operator Attention Tab */}
+        {activeTab === 'operator_attention' && (
+          <section style={{ background: '#78350f', padding: '20px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #f59e0b' }}>
+            <h2 style={{ fontSize: '18px', marginTop: 0, color: '#fef3c7' }}>🚨 [Operator Attention] Các Lượt Chạy Cần Can Thiệp Kỹ Thuật</h2>
+            <p style={{ fontSize: '13px', color: '#fde68a', marginBottom: '15px' }}>
+              Danh sách các lượt xử lý bị lỗi (failed), kết quả bất định (uncertain), hoặc sai lệch kiểm chứng (verification mismatch) cần Operator xử lý hợp lệ.
+            </p>
+            <div style={{ background: '#020617', padding: '15px', borderRadius: '6px' }}>
+              {projects.flatMap((p) => (projectRuns[p.id] || []).filter((r) => r.status === 'needs_attention' || r.status === 'failed')).length === 0 ? (
+                <p style={{ color: '#94a3b8', margin: 0 }}>Hệ thống hoạt động hoàn toàn ổn định. Không có lượt chạy nào cần Operator can thiệp!</p>
+              ) : (
+                projects.flatMap((p) =>
+                  (projectRuns[p.id] || [])
+                    .filter((r) => r.status === 'needs_attention' || r.status === 'failed')
+                    .map((r) => (
+                      <div key={r.id} style={{ borderBottom: '1px solid #1e293b', paddingBottom: '10px', marginBottom: '10px' }}>
+                        <div style={{ fontWeight: 'bold', color: '#fca5a5' }}>Project: {p.name} | Run ID: {r.id}</div>
+                        <div style={{ fontSize: '12px', color: '#f87171' }}>Lý do can thiệp: {r.reason || 'Sự cố cần kiểm tra chứng cứ HEAD hoặc cho phép Retry'}</div>
+                        <button onClick={() => setActiveTab('projects')} style={{ marginTop: '6px', padding: '4px 10px', background: '#d97706', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
+                          ⚙️ Mở Chi Tiết Project Để Thực Thi Lệnh Xử Lý
+                        </button>
+                      </div>
+                    ))
+                )
+              )}
+            </div>
+          </section>
+        )}
+
         {/* PRODUCER ONLY SECTION: Create Project Form */}
-        {isProducer && (
+        {activeTab === 'projects' && isProducer && (
           <section style={{ background: '#1e293b', padding: '20px', borderRadius: '8px', marginBottom: '30px' }}>
             <h2 style={{ fontSize: '18px', marginTop: 0, color: '#f8fafc' }}>➕ [Producer Panel] Tạo Media Project Mới</h2>
             <form onSubmit={handleCreateProject} style={{ display: 'flex', gap: '10px' }}>
