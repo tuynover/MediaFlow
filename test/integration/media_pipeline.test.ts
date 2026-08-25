@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { MediaProcessor } from '../../packages/media/src/index.ts';
-import { MediaWorkerPipeline, getDeterministicObjectKeys } from '../../apps/worker/src/worker';
+import { MediaWorkerPipeline, getDeterministicObjectKeys, GracefulShutdownHandler } from '../../apps/worker/src/worker';
 
 describe('FFmpeg & Media Worker Pipeline Integration Tests (MF-401..MF-409)', () => {
   it('should parse ffprobe metadata accurately', () => {
@@ -148,5 +148,26 @@ describe('FFmpeg & Media Worker Pipeline Integration Tests (MF-401..MF-409)', ()
 
     // 2. Startup stale TTL cleanup
     expect(() => MediaWorkerPipeline.cleanupStaleScratchDirectories('/tmp/mediaflow', 1000)).not.toThrow();
+  });
+
+  it('should enforce Spec 12.8: Graceful shutdown manager stops receiving jobs and waits for active jobs to complete', async () => {
+    const handler = new GracefulShutdownHandler();
+
+    // 1. Start job
+    handler.startJob();
+    expect(handler.isShutdownRequested()).toBe(false);
+
+    // 2. Initiate shutdown in background
+    const shutdownPromise = handler.handleShutdown('SIGTERM', null, 2000);
+
+    // 3. Reject new jobs when shutdown is requested
+    expect(() => handler.startJob()).toThrow('WORKER_SHUTTING_DOWN');
+
+    // 4. Finish active job
+    handler.finishJob();
+
+    const result = await shutdownPromise;
+    expect(result.success).toBe(true);
+    expect(result.activeJobsRemaining).toBe(0);
   });
 });

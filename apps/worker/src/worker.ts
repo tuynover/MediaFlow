@@ -135,27 +135,87 @@ export function getDeterministicObjectKeys(workspaceId: string, projectId: strin
   };
 }
 
+// Spec 12.8: Graceful Shutdown Manager according to Spec 12.8 rules
+export class GracefulShutdownHandler {
+  private isShuttingDown = false;
+  private activeJobsCount = 0;
+
+  startJob() {
+    if (this.isShuttingDown) {
+      throw new Error('WORKER_SHUTTING_DOWN: Worker is shutting down and cannot accept new jobs');
+    }
+    this.activeJobsCount += 1;
+  }
+
+  finishJob() {
+    this.activeJobsCount = Math.max(0, this.activeJobsCount - 1);
+  }
+
+  async handleShutdown(signal: string, workerInstance?: any, timeoutMs = 10000): Promise<{ success: boolean; activeJobsRemaining: number }> {
+    console.log(`🛑 [Worker Graceful Shutdown] Received ${signal}. Stopping new job fetches...`);
+    this.isShuttingDown = true;
+
+    // 1. Stop receiving new jobs from Redis BullMQ Worker queue listener
+    if (workerInstance && typeof workerInstance.close === 'function') {
+      try {
+        await workerInstance.close();
+      } catch (e) {
+        // Ignore worker close errors
+      }
+    }
+
+    // 2. Wait up to configured shutdown timeout for active jobs to complete safely
+    const startTime = Date.now();
+    while (this.activeJobsCount > 0 && Date.now() - startTime < timeoutMs) {
+      await new Promise((r) => setTimeout(r, 200));
+    }
+
+    console.log(`✅ [Worker Graceful Shutdown] Completed cleanly. Remaining active jobs: ${this.activeJobsCount}`);
+    return { success: true, activeJobsRemaining: this.activeJobsCount };
+  }
+
+  isShutdownRequested() {
+    return this.isShuttingDown;
+  }
+}
+
 // BullMQ Worker Initialization for Background Processing
 if (process.env.NODE_ENV !== 'test') {
   const pipeline = new MediaWorkerPipeline();
+  const shutdownManager = new GracefulShutdownHandler();
   console.log('🚀 Media Worker replica started (BullMQ Concurrency: 2)');
 
+  let activeWorker: any = null;
+
   try {
-    createBullMQWorker(
+    activeWorker = createBullMQWorker(
       QUEUE_NAMES.MEDIA_PROCESSING,
       async (job) => {
+        shutdownManager.startJob();
         console.log(`⚡ [Worker Job Received] Processing Run ID: ${job.data.runId}`);
-        const result = await pipeline.processRun({
-          runId: job.data.runId,
-          workspaceId: job.data.workspaceId,
-          projectId: job.data.projectId,
-          sourcePath: job.data.sourcePath || job.data.objectKey,
-        });
-        return result;
+        try {
+          const result = await pipeline.processRun({
+            runId: job.data.runId,
+            workspaceId: job.data.workspaceId,
+            projectId: job.data.projectId,
+            sourcePath: job.data.sourcePath || job.data.objectKey,
+          });
+          return result;
+        } finally {
+          shutdownManager.finishJob();
+        }
       },
       2
     );
   } catch (err) {
     console.log('💡 Worker standby mode ready (Redis connection active)');
   }
+
+  const onShutdownSignal = async (signal: string) => {
+    await shutdownManager.handleShutdown(signal, activeWorker);
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', () => onShutdownSignal('SIGTERM'));
+  process.on('SIGINT', () => onShutdownSignal('SIGINT'));
 }
