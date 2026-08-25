@@ -7,8 +7,9 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 import { ApprovalsModule } from './modules/approvals/approvals.module';
 import { PublishModule } from './modules/publish/publish.module';
 import { FailureLabModule } from './modules/failure-lab/failure-lab.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
-  imports: [AuthModule, ProjectsModule, UploadsModule, RunsModule, RealtimeModule, ApprovalsModule, PublishModule, FailureLabModule],
+  imports: [AuthModule, ProjectsModule, UploadsModule, RunsModule, RealtimeModule, ApprovalsModule, PublishModule, FailureLabModule, HealthModule],
 })
 export class AppModule {}

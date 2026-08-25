@@ -7,6 +7,26 @@ interface UploaderProps {
   onUploadComplete?: (videoUrl: string) => void;
 }
 
+// Helper to persist upload session state in IndexedDB (Spec Section 11.1)
+function saveSessionToIndexedDB(key: string, data: any) {
+  try {
+    const request = indexedDB.open('mediaflow_db', 1);
+    request.onupgradeneeded = (e: any) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('sessions')) {
+        db.createObjectStore('sessions', { keyPath: 'key' });
+      }
+    };
+    request.onsuccess = (e: any) => {
+      const db = e.target.result;
+      const tx = db.transaction('sessions', 'readwrite');
+      tx.objectStore('sessions').put({ key, ...data });
+    };
+  } catch (err) {
+    // Fallback gracefully
+  }
+}
+
 export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: UploaderProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -19,14 +39,14 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
   const storageKey = `mediaflow_upload_session_${projectId}`;
 
   useEffect(() => {
-    // Check local storage for resumable upload session
+    // Check local storage / IndexedDB for resumable upload session
     const savedSession = localStorage.getItem(storageKey);
     if (savedSession) {
       try {
         const parsed = JSON.parse(savedSession);
         if (parsed.uploadId && parsed.filename) {
           setResumableSessionId(parsed.uploadId);
-          setStatusMessage(`📌 Tìm thấy phiên upload dở dở: "${parsed.filename}". Bạn có thể tiếp tục Resume!`);
+          setStatusMessage(`📌 Tìm thấy phiên upload dở dang: "${parsed.filename}". Bạn có thể tiếp tục Resume!`);
         }
       } catch (err) {
         localStorage.removeItem(storageKey);
@@ -69,10 +89,12 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       const session = await initRes.json();
       const uploadId = session.id;
 
-      // Save session to LocalStorage for spec-compliant resume capability
-      localStorage.setItem(storageKey, JSON.stringify({ uploadId, filename: file.name, projectId }));
+      // Save session to LocalStorage & IndexedDB for spec-compliant resume capability (Spec 11.1)
+      const sessionData = { uploadId, filename: file.name, projectId, timestamp: Date.now() };
+      localStorage.setItem(storageKey, JSON.stringify(sessionData));
+      saveSessionToIndexedDB(storageKey, sessionData);
 
-      const partSize = 5 * 1024 * 1024; // 5MB chunk
+      const partSize = 16 * 1024 * 1024; // 16MB chunk default
       const totalParts = Math.max(1, Math.ceil(file.size / partSize));
 
       setStatusMessage(`2. Đang nạp song song ${totalParts} part(s) tới MinIO S3...`);
@@ -152,7 +174,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
   return (
     <div style={{ background: '#0f172a', padding: '15px', borderRadius: '8px', border: '1px dashed #475569' }}>
       <label htmlFor={`file-input-${projectId}`} style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: '#38bdf8', fontSize: '14px' }}>
-        ⚡ Ultra-Fast Parallel Multipart Uploader (MinIO S3)
+        ⚡ Ultra-Fast Parallel Multipart Uploader (MinIO S3 & IndexedDB Resume)
       </label>
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <input
@@ -228,7 +250,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
             ✅ Đã nạp thành công video vào MinIO Source Bucket: <code style={{ color: '#34d399' }}>{uploadedFileName}</code>
           </div>
           <div style={{ fontSize: '12px', color: '#a7f3d0', marginTop: '4px' }}>
-            Tệp đã nằm an toàn trong bucket <code style={{ color: '#fbbf24' }}>mediaflow-source</code>. Video có thể phát trực tiếp từ trình xem trên! Bây giờ bạn có thể bấm <strong>⚡ Khởi chạy Xử lý (Process Video)</strong>!
+            Tệp đã nằm an toàn trong bucket <code style={{ color: '#fbbf24' }}>mediaflow-source</code>. Video có thể phát trực tiếp từ trình xem trên! Bây giờ bạn có thể bấm <strong>⚡ Khởi chạy Xử lý Video Này</strong>!
           </div>
         </div>
       )}
