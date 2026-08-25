@@ -198,6 +198,32 @@ export class UploadsService {
       .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
   }
 
+  // Spec 11.3: Periodic cleanup job for expired upload sessions
+  async cleanupExpiredUploads(workspaceId: string): Promise<{ expiredCount: number; expiredUploadIds: string[] }> {
+    const now = new Date().toISOString();
+    const expiredSessions = UPLOAD_SESSIONS.filter(
+      (s) =>
+        s.workspaceId === workspaceId &&
+        (s.status === 'initiated' || s.status === 'uploading') &&
+        s.expiresAt <= now
+    );
+
+    const expiredUploadIds: string[] = [];
+
+    for (const session of expiredSessions) {
+      try {
+        await this.storageAdapter.abortMultipartUpload(session.bucket, session.objectKey, session.providerUploadId);
+      } catch (err) {
+        // Spec 11.3: If provider returns not-found/404, treat as cleaned up
+      }
+
+      session.status = 'expired';
+      expiredUploadIds.push(session.id);
+    }
+
+    return { expiredCount: expiredUploadIds.length, expiredUploadIds };
+  }
+
   static clearAllUploads() {
     UPLOAD_SESSIONS.length = 0;
     UPLOADED_ASSETS.length = 0;

@@ -83,4 +83,39 @@ describe('Multipart Upload Session Integration Tests (AS-01)', () => {
     const updated = await uploadsService.getSession(WORKSPACE_ID, session.id);
     expect(updated.status).toBe('aborted');
   });
+
+  it('should enforce Spec 11.2: API does not proxy binary files and only returns presigned URLs', async () => {
+    const session = await uploadsService.initiateUpload(
+      WORKSPACE_ID,
+      PROJECT_ID,
+      'no-proxy.mp4',
+      10 * 1024 * 1024,
+      'video/mp4'
+    );
+
+    const signRes = await uploadsService.signPartUrl(WORKSPACE_ID, session.id, 1);
+    expect(signRes.url).toBeDefined();
+    expect(typeof signRes.url).toBe('string');
+    expect(signRes.url).not.toContain('binary-proxy');
+  });
+
+  it('should enforce Spec 11.3: Periodic cleanup job for expired upload sessions', async () => {
+    const session = await uploadsService.initiateUpload(
+      WORKSPACE_ID,
+      PROJECT_ID,
+      'expired-upload.mp4',
+      15 * 1024 * 1024,
+      'video/mp4'
+    );
+
+    // Manually set expiresAt to past date
+    session.expiresAt = new Date(Date.now() - 1000).toISOString();
+
+    const cleanupResult = await uploadsService.cleanupExpiredUploads(WORKSPACE_ID);
+    expect(cleanupResult.expiredCount).toBe(1);
+    expect(cleanupResult.expiredUploadIds).toContain(session.id);
+
+    const updated = await uploadsService.getSession(WORKSPACE_ID, session.id);
+    expect(updated.status).toBe('expired');
+  });
 });
