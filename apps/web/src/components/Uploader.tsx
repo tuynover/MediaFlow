@@ -112,14 +112,18 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       setFile(selectedFile);
       const url = URL.createObjectURL(selectedFile);
       setPreviewUrl(url);
+      // Immediately store binary fileBlob to IndexedDB for instant resume capability
+      saveSessionToIndexedDB(storageKey, {
+        filename: selectedFile.name,
+        projectId,
+        fileBlob: selectedFile,
+        timestamp: Date.now(),
+      });
     }
   };
 
   const resumeUpload = async () => {
     if (!resumableSession) return;
-    setUploading(true);
-    setProgress(40);
-    setStatusMessage(`🔄 Tải tiếp phần còn lại của video: "${resumableSession.filename}"...`);
 
     let activeFile = file;
     let activePreview = previewUrl;
@@ -137,6 +141,17 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
         }
       }
     }
+
+    if (!activeFile && !activePreview) {
+      alert(`Vui lòng chọn tệp "${resumableSession.filename}" bằng ô Choose File để tiếp tục Resume và khởi tạo Video!`);
+      const fileInput = document.getElementById(`file-input-${projectId}`);
+      if (fileInput) fileInput.click();
+      return;
+    }
+
+    setUploading(true);
+    setProgress(40);
+    setStatusMessage(`🔄 Tải tiếp phần còn lại của video: "${resumableSession.filename}"...`);
 
     try {
       // Fetch session state & existing parts from server

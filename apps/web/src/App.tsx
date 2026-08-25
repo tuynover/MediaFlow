@@ -636,15 +636,30 @@ export default function App() {
                           projectId={p.id}
                           workspaceId={currentUser?.workspaceId || ''}
                           userId={currentUser?.id || ''}
-                          onUploadComplete={(url, assetId) => {
-                            if (url) {
-                              if (assetId) localStorage.setItem(`mediaflow_videourl_${assetId}`, url);
-                              localStorage.setItem(`mediaflow_videourl_${p.id}`, url);
+                          onUploadComplete={async (url, assetId) => {
+                            let validUrl = url;
+                            if (!validUrl && assetId && currentUser) {
+                              try {
+                                const presRes = await fetch(`/api/v1/assets/${assetId}/preview`, {
+                                  headers: {
+                                    'x-workspace-id': currentUser.workspaceId,
+                                    'x-user-id': currentUser.id,
+                                  },
+                                });
+                                const presData = await presRes.json();
+                                if (presData.previewUrl) validUrl = presData.previewUrl;
+                              } catch (err) {
+                                console.error('Failed to get presigned preview URL', err);
+                              }
+                            }
+                            if (validUrl) {
+                              if (assetId) localStorage.setItem(`mediaflow_videourl_${assetId}`, validUrl);
+                              localStorage.setItem(`mediaflow_videourl_${p.id}`, validUrl);
                             }
                             setVideoUrls((prev) => ({
                               ...prev,
-                              [p.id]: url,
-                              ...(assetId ? { [assetId]: url } : {}),
+                              [p.id]: validUrl,
+                              ...(assetId ? { [assetId]: validUrl } : {}),
                             }));
                             fetchProjects();
                           }}
