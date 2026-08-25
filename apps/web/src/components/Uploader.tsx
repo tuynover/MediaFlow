@@ -91,7 +91,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
 
       // Complete multipart upload
       setStatusMessage('3. Hoàn tất kết nối MinIO Session...');
-      await fetch(`/api/v1/uploads/${uploadId}/complete`, {
+      const completeRes = await fetch(`/api/v1/uploads/${uploadId}/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,6 +100,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
         },
         body: JSON.stringify({ parts }),
       });
+      const completeData = await completeRes.json();
 
       localStorage.removeItem(storageKey);
       const filename = resumableSession.filename;
@@ -108,7 +109,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       setStatusMessage('⚡ Resume upload thành công 100%!');
       setUploadedFileName(filename);
       setFile(null);
-      if (onUploadComplete) onUploadComplete('sample_video.mp4');
+      if (onUploadComplete) onUploadComplete('sample_video.mp4', completeData?.assetId);
     } catch (err) {
       console.error(err);
       setStatusMessage('❌ Lỗi resume upload video!');
@@ -153,61 +154,68 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       localStorage.setItem(storageKey, JSON.stringify(sessionData));
       saveSessionToIndexedDB(storageKey, sessionData);
 
-      const partSize = 16 * 1024 * 1024; // 16MB chunk default
+      const partSize = file.size > 40 * 1024 * 1024 ? 5 * 1024 * 1024 : 16 * 1024 * 1024;
       const totalParts = Math.max(1, Math.ceil(file.size / partSize));
 
       setStatusMessage(`2. Đang nạp song song ${totalParts} part(s) tới MinIO S3...`);
 
       let completedCount = 0;
+      const reportedParts: { partNumber: number; etag: string; sizeBytes: number }[] = [];
 
-      const partPromises = Array.from({ length: totalParts }, async (_, index) => {
-        const partNumber = index + 1;
-        const start = index * partSize;
-        const end = Math.min(start + partSize, file.size);
-        const chunk = file.slice(start, end);
-        const etag = `etag_part_${partNumber}_${Date.now()}`;
+      // Batch upload in concurrency limit of 3 to avoid socket pool exhaustion on large files
+      const concurrencyLimit = 3;
+      for (let i = 0; i < totalParts; i += concurrencyLimit) {
+        const batchIndices = Array.from({ length: Math.min(concurrencyLimit, totalParts - i) }, (_, idx) => i + idx);
+        const batchResults = await Promise.all(
+          batchIndices.map(async (index) => {
+            const partNumber = index + 1;
+            const start = index * partSize;
+            const end = Math.min(start + partSize, file.size);
+            const chunk = file.slice(start, end);
+            const etag = `etag_part_${partNumber}_${Date.now()}`;
 
-        try {
-          // Sign Part URL
-          const signRes = await fetch(`/api/v1/uploads/${uploadId}/parts/${partNumber}/url`, {
-            method: 'POST',
-            headers: {
-              'x-workspace-id': workspaceId,
-              'x-user-id': userId,
-            },
-          });
-
-          if (signRes.ok) {
-            const signData = await signRes.json();
-            const url = signData.url;
             try {
-              await fetch(url, { method: 'PUT', body: chunk });
-            } catch (s3Err) {
-              // S3 Dev fallback
+              // Sign Part URL
+              const signRes = await fetch(`/api/v1/uploads/${uploadId}/parts/${partNumber}/url`, {
+                method: 'POST',
+                headers: {
+                  'x-workspace-id': workspaceId,
+                  'x-user-id': userId,
+                },
+              });
+
+              if (signRes.ok) {
+                const signData = await signRes.json();
+                const url = signData.url;
+                try {
+                  await fetch(url, { method: 'PUT', body: chunk });
+                } catch (s3Err) {
+                  // S3 Dev fallback
+                }
+              }
+
+              // Report Part
+              await fetch(`/api/v1/uploads/${uploadId}/parts/report`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-workspace-id': workspaceId,
+                  'x-user-id': userId,
+                },
+                body: JSON.stringify({ partNumber, etag, sizeBytes: chunk.size }),
+              });
+            } catch (partErr) {
+              console.warn(`Part ${partNumber} fallback executed:`, partErr);
+            } finally {
+              completedCount += 1;
+              setProgress(Math.round(20 + (completedCount / totalParts) * 70));
             }
-          }
 
-          // Report Part
-          await fetch(`/api/v1/uploads/${uploadId}/parts/report`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-workspace-id': workspaceId,
-              'x-user-id': userId,
-            },
-            body: JSON.stringify({ partNumber, etag, sizeBytes: chunk.size }),
-          });
-        } catch (partErr) {
-          console.warn(`Part ${partNumber} fallback executed:`, partErr);
-        } finally {
-          completedCount += 1;
-          setProgress(Math.round(20 + (completedCount / totalParts) * 70));
-        }
-
-        return { partNumber, etag, sizeBytes: chunk.size };
-      });
-
-      const reportedParts = await Promise.all(partPromises);
+            return { partNumber, etag, sizeBytes: chunk.size };
+          })
+        );
+        reportedParts.push(...batchResults);
+      }
 
       // Step 3: Complete multipart upload
       setStatusMessage('3. Hoàn tất kết nối MinIO Session...');

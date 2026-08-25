@@ -658,7 +658,7 @@ export default function App() {
                           {[...assets]
                             .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
                             .map((asset) => {
-                            const assetRun = runs.find((r) => r.sourceAssetId === asset.id || runs.length === 1);
+                            const assetRun = runs.find((r) => r.sourceAssetId === asset.id);
                             const pubOp = assetRun ? publishOps[assetRun.id] : null;
                             const isExpanded = assetRun ? expandedReview[assetRun.id] : false;
 
