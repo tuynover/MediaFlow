@@ -392,11 +392,11 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       )}
 
       {uploading && (
-        <div style={{ marginTop: '10px' }}>
+        <div style={{ marginTop: '10px' }} role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="Upload progress">
           <div style={{ background: '#334155', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
             <div style={{ width: `${progress}%`, background: '#10b981', height: '100%', transition: 'width 0.2s ease' }} />
           </div>
-          <div style={{ marginTop: '4px', fontSize: '12px', color: '#10b981' }}>{progress}% - {statusMessage}</div>
+          <div style={{ marginTop: '4px', fontSize: '12px', color: '#10b981' }}>{progress}% completed - {statusMessage}</div>
         </div>
       )}
 
