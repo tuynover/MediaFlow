@@ -829,20 +829,22 @@ export default function App() {
                                         <div style={{ fontWeight: 'bold', color: '#38bdf8', marginBottom: '6px', fontSize: '13px' }}>
                                           🚀 Publish Delivery (Bàn giao sang MinIO Delivery Bucket):
                                         </div>
-                                        <div style={{ display: 'flex', gap: '10px' }}>
-                                          <button
-                                            onClick={() => handlePublish(assetRun.id, false)}
-                                            style={{ padding: '6px 12px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                                          >
-                                            📤 Publish Delivery Thành Công
-                                          </button>
-                                          <button
-                                            onClick={() => handlePublish(assetRun.id, true)}
-                                            style={{ padding: '6px 12px', background: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                                          >
-                                            ⚠️ Giả lập Lỗi Mất Mạng FL-04 (Uncertain State)
-                                          </button>
-                                        </div>
+                                        {(!pubOp || pubOp.state !== 'confirmed') && (
+                                          <div style={{ display: 'flex', gap: '10px' }}>
+                                            <button
+                                              onClick={() => handlePublish(assetRun.id, false)}
+                                              style={{ padding: '6px 12px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                                            >
+                                              📤 Publish Delivery Thành Công
+                                            </button>
+                                            <button
+                                              onClick={() => handlePublish(assetRun.id, true)}
+                                              style={{ padding: '6px 12px', background: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                                            >
+                                              ⚠️ Giả lập Lỗi Mất Mạng FL-04 (Uncertain State)
+                                            </button>
+                                          </div>
+                                        )}
                                       </div>
                                     )}
 

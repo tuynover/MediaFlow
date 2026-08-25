@@ -108,8 +108,9 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       setProgress(100);
       setStatusMessage('⚡ Resume upload thành công 100%!');
       setUploadedFileName(filename);
+      const resolvedUrl = previewUrl || (file ? URL.createObjectURL(file) : '');
       setFile(null);
-      if (onUploadComplete) onUploadComplete('sample_video.mp4', completeData?.assetId);
+      if (onUploadComplete) onUploadComplete(resolvedUrl, completeData?.assetId);
     } catch (err) {
       console.error(err);
       setStatusMessage('❌ Lỗi resume upload video!');
@@ -187,10 +188,14 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
               if (signRes.ok) {
                 const signData = await signRes.json();
                 const url = signData.url;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 800);
                 try {
-                  await fetch(url, { method: 'PUT', body: chunk });
+                  await fetch(url, { method: 'PUT', body: chunk, signal: controller.signal });
                 } catch (s3Err) {
-                  // S3 Dev fallback
+                  // S3 Dev fallback executed instantly without socket hang
+                } finally {
+                  clearTimeout(timeoutId);
                 }
               }
 
