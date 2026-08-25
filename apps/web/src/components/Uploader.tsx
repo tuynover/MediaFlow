@@ -76,7 +76,20 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
   const storageKey = `mediaflow_upload_session_${projectId}`;
 
   useEffect(() => {
-    // Check local storage & IndexedDB for resumable session + stored file Blob
+    // 1. Synchronously check LocalStorage for instant UI box display on F5 mount
+    const savedLocal = localStorage.getItem(storageKey);
+    if (savedLocal) {
+      try {
+        const parsed = JSON.parse(savedLocal);
+        if (parsed.uploadId && parsed.filename) {
+          setResumableSession({ uploadId: parsed.uploadId, filename: parsed.filename });
+        }
+      } catch (e) {
+        localStorage.removeItem(storageKey);
+      }
+    }
+
+    // 2. Asynchronously restore binary file Blob from IndexedDB
     getSessionFromIndexedDB(storageKey).then((saved) => {
       if (saved && saved.uploadId && saved.filename) {
         setResumableSession({ uploadId: saved.uploadId, filename: saved.filename });
@@ -91,7 +104,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
         }
       }
     });
-  }, [projectId]);
+  }, [projectId, storageKey]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -99,16 +112,6 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       setFile(selectedFile);
       const url = URL.createObjectURL(selectedFile);
       setPreviewUrl(url);
-      // Save session + binary Blob directly to IndexedDB for seamless resume
-      if (resumableSession) {
-        saveSessionToIndexedDB(storageKey, {
-          uploadId: resumableSession.uploadId,
-          filename: selectedFile.name,
-          projectId,
-          fileBlob: selectedFile,
-          timestamp: Date.now(),
-        });
-      }
     }
   };
 
