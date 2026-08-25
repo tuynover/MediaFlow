@@ -117,7 +117,19 @@ pnpm mediaflow watch --severity warning
 
 ---
 
-## 🚫 5. Quy tắc Cấm tuyệt đối (No RhinoQ Policy)
+## ⚙️ 6. Giới hạn Concurrency Baseline & Khuyến cáo Scaling (Spec 12.7)
+
+Hệ thống MediaFlow Baseline v1 được thiết kế với giới hạn tài nguyên có chủ đích:
+
+- **Single Worker Replica Baseline**: Trong môi trường Docker Compose Baseline (`docker/compose.yaml`), hệ thống chạy **đúng một (1) Media Worker Replica** với cấu hình **BullMQ Worker Concurrency: 2**.
+- **Giới hạn Tối đa 2 Pipeline Song Song**: Đảm bảo tại một thời điểm tối đa chỉ có 2 pipeline transcode video chạy đồng thời để tối ưu hóa tài nguyên phần cứng local.
+- **Scaling Disclaimers & Không Có Distributed Semaphore**:
+  - Khi scale mở rộng sang nhiều worker replicas, giới hạn concurrency = 2 **sẽ không còn mang tính toàn cục (not global)** do v1 không xây dựng cơ chế Distributed Resource Semaphore qua Redis/Consul.
+  - **Tuyên bố Giới hạn V1**: Không quảng bá hay cam kết khả năng tự động Scale Ngang (Horizontal Scaling) cho Media Worker trong phiên bản V1 này.
+
+---
+
+## 🚫 7. Quy tắc Cấm tuyệt đối (No RhinoQ Policy)
 
 MediaFlow Baseline v1 là một repository độc lập 100%. CI gate sẽ tự động thất bại nếu phát hiện bất kỳ package hoặc import nào liên quan tới RhinoQ (`@rhinoq/*` hoặc `rhinoq`).
 
