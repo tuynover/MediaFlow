@@ -83,6 +83,16 @@ export class MediaWorkerPipeline {
   }
 }
 
+// Spec 12.3: Deterministic object key structure (User filename is metadata only, never raw in path)
+export function getDeterministicObjectKeys(workspaceId: string, projectId: string, runId: string, safeAssetId = 'source') {
+  return {
+    source: `workspaces/${workspaceId}/projects/${projectId}/runs/${runId}/source/${safeAssetId}`,
+    p720: `workspaces/${workspaceId}/projects/${projectId}/runs/${runId}/outputs/720p.mp4`,
+    p1080: `workspaces/${workspaceId}/projects/${projectId}/runs/${runId}/outputs/1080p.mp4`,
+    thumbnail: `workspaces/${workspaceId}/projects/${projectId}/runs/${runId}/outputs/thumbnail.jpg`,
+  };
+}
+
 // BullMQ Worker Initialization for Background Processing
 if (process.env.NODE_ENV !== 'test') {
   const pipeline = new MediaWorkerPipeline();

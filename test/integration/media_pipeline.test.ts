@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { MediaProcessor } from '../../packages/media/src/index';
-import { MediaWorkerPipeline } from '../../apps/worker/src/worker';
+import { MediaProcessor } from '../../packages/media/src/index.ts';
+import { MediaWorkerPipeline, getDeterministicObjectKeys } from '../../apps/worker/src/worker';
 
 describe('FFmpeg & Media Worker Pipeline Integration Tests (MF-401..MF-409)', () => {
   it('should parse ffprobe metadata accurately', () => {
@@ -89,5 +89,25 @@ describe('FFmpeg & Media Worker Pipeline Integration Tests (MF-401..MF-409)', ()
         cancelChecker
       )
     ).rejects.toThrow('CANCELLED: Processing cancelled by user');
+  });
+
+  it('should enforce Spec 12.3: Deterministic object keys without raw user filename in path', () => {
+    const keys = getDeterministicObjectKeys('ws_123', 'proj_456', 'run_789', 'asset_abc');
+    expect(keys.source).toBe('workspaces/ws_123/projects/proj_456/runs/run_789/source/asset_abc');
+    expect(keys.p720).toBe('workspaces/ws_123/projects/proj_456/runs/run_789/outputs/720p.mp4');
+    expect(keys.p1080).toBe('workspaces/ws_123/projects/proj_456/runs/run_789/outputs/1080p.mp4');
+    expect(keys.thumbnail).toBe('workspaces/ws_123/projects/proj_456/runs/run_789/outputs/thumbnail.jpg');
+    expect(keys.p720).not.toContain('User File Name With Spaces.mp4');
+  });
+
+  it('should enforce Spec 12.4: Safe FFprobe argument array without shell string concatenation', () => {
+    const ffprobeArgs = MediaProcessor.getFFprobeArgs('/tmp/input; rm -rf /;.mp4');
+    expect(ffprobeArgs).toContain('-v');
+    expect(ffprobeArgs).toContain('error');
+    expect(ffprobeArgs).toContain('-print_format');
+    expect(ffprobeArgs).toContain('json');
+    expect(ffprobeArgs).toContain('-show_format');
+    expect(ffprobeArgs).toContain('-show_streams');
+    expect(ffprobeArgs[ffprobeArgs.length - 1]).toBe('/tmp/input; rm -rf /;.mp4');
   });
 });

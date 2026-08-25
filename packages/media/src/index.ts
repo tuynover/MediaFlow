@@ -1,3 +1,5 @@
+import { spawn } from 'child_process';
+
 export interface ProbeMetadata {
   durationMs: number;
   width: number;
@@ -35,6 +37,11 @@ export class MediaProcessor {
       sizeBytes,
       formatName: format.format_name || 'unknown',
     };
+  }
+
+  // Safe argument array for FFprobe (shell: false) according to Spec 12.4
+  static getFFprobeArgs(inputPath: string): string[] {
+    return ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', inputPath];
   }
 
   // Safe argument array for FFmpeg Thumbnail generation (shell: false)
@@ -85,7 +92,6 @@ export class MediaProcessor {
     cancelChecker: () => boolean,
     pollIntervalMs = 1000
   ): Promise<void> {
-    const { spawn } = await import('node:child_process');
     return new Promise((resolve, reject) => {
       const child = spawn('ffmpeg', args);
       let killed = false;
@@ -109,7 +115,7 @@ export class MediaProcessor {
         }
       }, pollIntervalMs);
 
-      child.on('exit', (code) => {
+      child.on('exit', (code: number | null) => {
         clearInterval(timer);
         if (!killed) {
           if (code === 0) resolve();
@@ -117,7 +123,7 @@ export class MediaProcessor {
         }
       });
 
-      child.on('error', (err) => {
+      child.on('error', (err: any) => {
         clearInterval(timer);
         if (!killed) reject(err);
       });
