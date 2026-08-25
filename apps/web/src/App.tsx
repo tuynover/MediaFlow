@@ -42,6 +42,7 @@ export default function App() {
   const [publishOps, setPublishOps] = useState<Record<string, PublishOp>>({});
   const [rejectionReason, setRejectionReason] = useState<Record<string, string>>({});
   const [rejectionError, setRejectionError] = useState<Record<string, string>>({});
+  const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
 
   const seedUsers: SeedUser[] = [
     {
@@ -322,7 +323,7 @@ export default function App() {
           <section style={{ background: '#064e3b', padding: '15px 20px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #10b981' }}>
             <h2 style={{ fontSize: '18px', marginTop: 0, color: '#ecfdf5' }}>📥 [Reviewer Inbox] Danh sách Bản xem trước chờ Phê duyệt</h2>
             <p style={{ margin: 0, fontSize: '13px', color: '#a7f3d0' }}>
-              Bạn đang ở giao diện Reviewer. Chỉ Reviewer mới có quyền bấm <strong>Approve (Chấp nhận)</strong> hoặc <strong>Reject (Từ chối)</strong> bản nén video.
+              Bạn đang ở giao diện Reviewer. Phát và kiểm tra trực tiếp video đã được transcode dưới đây trước khi bấm <strong>Approve (Chấp nhận)</strong> hoặc <strong>Reject (Từ chối)</strong>.
             </p>
           </section>
         )}
@@ -388,7 +389,10 @@ export default function App() {
                           projectId={p.id}
                           workspaceId={currentUser?.workspaceId || ''}
                           userId={currentUser?.id || ''}
-                          onUploadComplete={() => fetchProjects()}
+                          onUploadComplete={(url) => {
+                            setVideoUrls((prev) => ({ ...prev, [p.id]: url }));
+                            fetchProjects();
+                          }}
                         />
                       </div>
                     )}
@@ -424,12 +428,27 @@ export default function App() {
                           <div style={{ width: `${activeRun.progressPercent}%`, background: '#10b981', height: '100%', transition: 'width 0.4s ease' }} />
                         </div>
 
-                        {/* REVIEWER ONLY PANEL: Approve / Reject Controls */}
+                        {/* REVIEWER ONLY PANEL: Approve / Reject Controls & Video Player */}
                         {activeRun.status === 'awaiting_approval' && isReviewer && (
                           <div style={{ marginTop: '15px', background: '#1e293b', padding: '12px', borderRadius: '6px', border: '1px solid #059669' }}>
                             <div style={{ fontWeight: 'bold', color: '#10b981', marginBottom: '10px', fontSize: '14px' }}>
                               📥 Reviewer Approval Control Panel:
                             </div>
+
+                            {/* Reviewer Video Player */}
+                            <div style={{ marginBottom: '12px', background: '#020617', padding: '10px', borderRadius: '6px' }}>
+                              <div style={{ fontSize: '12px', color: '#34d399', fontWeight: 'bold', marginBottom: '6px' }}>
+                                🎬 Video Bản Nén Transcoded (720p/1080p Stream Ready for Review):
+                              </div>
+                              <video
+                                controls
+                                src={videoUrls[p.id] || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'}
+                                style={{ width: '100%', maxHeight: '260px', borderRadius: '6px', backgroundColor: '#000' }}
+                              >
+                                Trình duyệt không hỗ trợ thẻ HTML5 Video.
+                              </video>
+                            </div>
+
                             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                               <button
                                 onClick={() => handleApprove(activeRun.id, p.id)}

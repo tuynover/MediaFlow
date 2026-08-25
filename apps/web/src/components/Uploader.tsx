@@ -4,11 +4,12 @@ interface UploaderProps {
   projectId: string;
   workspaceId: string;
   userId: string;
-  onUploadComplete?: () => void;
+  onUploadComplete?: (videoUrl: string) => void;
 }
 
 export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: UploaderProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -35,7 +36,10 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      const url = URL.createObjectURL(selectedFile);
+      setPreviewUrl(url);
     }
   };
 
@@ -136,7 +140,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       setStatusMessage('⚡ Tải video siêu tốc thành công 100%!');
       setUploadedFileName(file.name);
       setFile(null);
-      if (onUploadComplete) onUploadComplete();
+      if (onUploadComplete && previewUrl) onUploadComplete(previewUrl);
     } catch (err) {
       console.error(err);
       setStatusMessage('❌ Lỗi upload video!');
@@ -187,6 +191,22 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
         </div>
       )}
 
+      {/* HTML5 REAL VIDEO PLAYER PREVIEW */}
+      {previewUrl && (
+        <div style={{ marginTop: '12px', background: '#020617', padding: '10px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+          <div style={{ fontSize: '12px', color: '#38bdf8', fontWeight: 'bold', marginBottom: '6px' }}>
+            🎥 Live Video Player Preview (HTML5 Playable Stream):
+          </div>
+          <video
+            controls
+            src={previewUrl}
+            style={{ width: '100%', maxHeight: '240px', borderRadius: '6px', backgroundColor: '#000' }}
+          >
+            Trình duyệt của bạn không hỗ trợ thẻ video HTML5.
+          </video>
+        </div>
+      )}
+
       {uploading && (
         <div style={{ marginTop: '10px' }}>
           <div style={{ background: '#334155', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
@@ -208,7 +228,7 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
             ✅ Đã nạp thành công video vào MinIO Source Bucket: <code style={{ color: '#34d399' }}>{uploadedFileName}</code>
           </div>
           <div style={{ fontSize: '12px', color: '#a7f3d0', marginTop: '4px' }}>
-            Tệp đã nằm an toàn trong bucket <code style={{ color: '#fbbf24' }}>mediaflow-source</code>. Bây giờ bạn có thể bấm nút <strong>⚡ Khởi chạy Xử lý (Process Video)</strong> bên dưới!
+            Tệp đã nằm an toàn trong bucket <code style={{ color: '#fbbf24' }}>mediaflow-source</code>. Video có thể phát trực tiếp từ trình xem trên! Bây giờ bạn có thể bấm <strong>⚡ Khởi chạy Xử lý (Process Video)</strong>!
           </div>
         </div>
       )}
