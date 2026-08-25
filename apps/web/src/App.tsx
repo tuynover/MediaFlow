@@ -589,8 +589,8 @@ export default function App() {
 
 
 
-                                    {/* PRODUCER: Process Run Button */}
-                                    {isProducer && (
+                                    {/* PRODUCER: Process Run Button (Only show if video has NOT been processed yet) */}
+                                    {isProducer && (!assetRun || assetRun.status === 'rejected') && (
                                       <button
                                         onClick={() => handleProcessRunForAsset(p.id, asset)}
                                         style={{
