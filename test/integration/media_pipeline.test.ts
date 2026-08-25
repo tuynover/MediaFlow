@@ -110,4 +110,26 @@ describe('FFmpeg & Media Worker Pipeline Integration Tests (MF-401..MF-409)', ()
     expect(ffprobeArgs).toContain('-show_streams');
     expect(ffprobeArgs[ffprobeArgs.length - 1]).toBe('/tmp/input; rm -rf /;.mp4');
   });
+
+  it('should enforce Spec 12.5: Transcode FFmpeg progress parsing and write storm throttling', () => {
+    // 1. Check -progress pipe:1 in transcode args
+    const transcodeArgs = MediaProcessor.getTranscodeArgs('/tmp/in.mp4', '/tmp/out.mp4', 720);
+    expect(transcodeArgs).toContain('-progress');
+    expect(transcodeArgs).toContain('pipe:1');
+    expect(transcodeArgs).toContain('-pix_fmt');
+    expect(transcodeArgs).toContain('yuv420p');
+    expect(transcodeArgs).toContain('-c:v');
+    expect(transcodeArgs).toContain('libx264');
+    expect(transcodeArgs).toContain('-c:a');
+    expect(transcodeArgs).toContain('aac');
+
+    // 2. Parse out_time_ms line
+    const progress = MediaProcessor.parseProgressLine('out_time_ms=60000', 120000); // 60s out of 120s
+    expect(progress).toBe(50.0);
+
+    // 3. Test Progress Throttling (should emit if time delta >= 1000ms OR percent delta >= 1%)
+    expect(MediaProcessor.shouldEmitProgress(1000, 10.0, 1200, 10.2)).toBe(false); // 200ms & 0.2% delta ➔ Suppressed (throttled)
+    expect(MediaProcessor.shouldEmitProgress(1000, 10.0, 2100, 10.2)).toBe(true);  // 1100ms delta ➔ Allowed
+    expect(MediaProcessor.shouldEmitProgress(1000, 10.0, 1200, 11.5)).toBe(true);  // 1.5% delta ➔ Allowed
+  });
 });

@@ -76,14 +76,24 @@ export class MediaProcessor {
 
   // Parse FFmpeg progress pipe output lines
   static parseProgressLine(line: string, totalDurationMs: number): number | null {
-    if (line.startsWith('out_time_ms=')) {
-      const timeMs = parseInt(line.split('=')[1], 10);
+    if (line.startsWith('out_time_us=') || line.startsWith('out_time_ms=')) {
+      const parts = line.split('=');
+      const timeUs = parseInt(parts[1], 10);
+      const timeMs = line.startsWith('out_time_us=') ? Math.round(timeUs / 1000) : timeUs;
       if (!isNaN(timeMs) && totalDurationMs > 0) {
-        const percent = (timeMs / (totalDurationMs * 1000)) * 100;
+        const percent = (timeMs / totalDurationMs) * 100;
         return Math.min(Math.max(parseFloat(percent.toFixed(2)), 0), 100);
       }
     }
     return null;
+  }
+
+  // Spec 12.5: Progress Throttler to prevent DB/SSE write storms (max 1 write per 1000ms OR >= 1% progress delta)
+  static shouldEmitProgress(lastEmitTimeMs: number, lastEmitPercent: number, currentTimeMs: number, currentPercent: number): boolean {
+    if (currentPercent >= 100) return true;
+    const timeDeltaMs = currentTimeMs - lastEmitTimeMs;
+    const percentDelta = Math.abs(currentPercent - lastEmitPercent);
+    return timeDeltaMs >= 1000 || percentDelta >= 1.0;
   }
 
   // Spec 5.4: Execute FFmpeg with Cooperative Cancellation (Polling every 1s, SIGTERM -> 10s -> SIGKILL)
