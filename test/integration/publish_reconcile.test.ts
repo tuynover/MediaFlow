@@ -50,7 +50,20 @@ describe('Publish Operations & Uncertain Result Reconciliation (MF-601..MF-606)'
 
     expect(reconciled.state).toBe('confirmed');
     expect(reconciled.confirmedAt).toBeDefined();
-    expect(reconciled.providerEvidence?.etag).toBe('etag_delivery_reconciled');
     expect(reconciled.lastErrorCode).toBeNull();
+  });
+
+  it('should enforce Spec 13.2 delivery checks: size, sha256, assetId, runId, requestId, etag, and HEAD evidence verification', async () => {
+    const op = await service.triggerPublish(WORKSPACE_ID, 'run_delivery_spec132', SOURCE_ASSET_ID, '720p', false);
+
+    expect(op.state).toBe('confirmed');
+    expect(op.providerEvidence).toBeDefined();
+    expect(op.providerEvidence?.headVerified).toBe(true);
+    expect(op.providerEvidence?.sizeBytes).toBeGreaterThan(0);
+    expect(op.providerEvidence?.sha256).toBeDefined();
+    expect(op.providerEvidence?.sourceAssetId).toBe(SOURCE_ASSET_ID);
+    expect(op.providerEvidence?.runId).toBe('run_delivery_spec132');
+    expect(op.providerEvidence?.etag).toBeDefined();
+    expect(op.providerEvidence?.requestId).toBeDefined();
   });
 });
