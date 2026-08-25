@@ -47,31 +47,31 @@ MediaFlow Baseline v1 là một hệ thống độc lập xử lý video lớn b
 - pnpm >= 9.0.0
 - Docker & Docker Compose
 
-### Bước 1: Khởi động Hạ tầng Docker Services
+### Bước 1: Khởi động Toàn bộ Hạ tầng & Ứng dụng bằng 1 Lệnh Duy Nhất (Spec 22)
 ```bash
-docker compose up -d
+docker compose up --build
 ```
-*Lệnh trên sẽ tự động khởi tạo PostgreSQL (port 5432), Redis (port 6379), MinIO API (port 9000), MinIO Console (port 9001), và tạo 3 storage buckets (`mediaflow-source`, `mediaflow-processed`, `mediaflow-delivery`).*
+*Lệnh trên sẽ tự động dựng và khởi chạy 7 container services (`postgres`, `redis`, `minio`, `minio-init`, `api`, `worker`, `web`), tự động chạy DB Migration, và khởi tạo 3 storage buckets (`mediaflow-source`, `mediaflow-processed`, `mediaflow-delivery`).*
 
 ### Bước 2: Khai báo Biến môi trường
 ```bash
 cp .env.example .env
 ```
 
-### Bước 3: Chạy Kiểm thử & Đánh giá Mã nguồn
+### Bước 3: Kiểm tra Hệ thống & Endpoints Khả Dụng (Spec 20 & 22)
+- **React Frontend Dashboard**: `http://localhost:5173`
+- **NestJS API Server Base**: `http://localhost:3000`
+- **Health Liveness Endpoint**: `http://localhost:3000/health/live` (Spec 20.2: Process liveness)
+- **Health Readiness Endpoint**: `http://localhost:3000/health/ready` (Spec 20.2: DB, Redis, MinIO readiness status)
+- **Prometheus Metrics Text Endpoint**: `http://localhost:3000/metrics` (Spec 20.3: Upload/Run/Queue/Duration metrics)
+- **MinIO Local Console**: `http://localhost:9001` (User: `minioadmin` / Pass: `minioadminpassword`)
+
+### Bước 4: Chạy Kiểm thử & Đánh giá Mã nguồn
 ```bash
 pnpm verify:no-rhinoq         # Kiểm tra CI Gate cấm RhinoQ
 node evals/scorecards/eval_code_quality.mjs   # Chạy bộ chấm điểm chất lượng AI Scorecard
-pnpm test                     # Chạy toàn bộ 33 Unit & Integration Tests
+pnpm test                     # Chạy toàn bộ Vitest Integration & Exception Suites
 ```
-
-### Bước 4: Khởi chạy Ứng dụng ở Môi trường Dev
-```bash
-pnpm dev
-```
-- **React Frontend**: http://localhost:5173
-- **NestJS API Server**: http://localhost:3000
-- **MinIO Console**: http://localhost:9001 (User: `minioadmin` / Pass: `minioadminpassword`)
 
 ---
 
