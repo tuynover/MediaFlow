@@ -47,9 +47,20 @@ interface PublishOp {
 }
 
 const VideoThumbnail = ({ videoUrl, filename, assetId }: { videoUrl?: string; filename: string; assetId: string }) => {
-  const [thumbSrc, setThumbSrc] = useState<string | null>(null);
+  const [thumbSrc, setThumbSrc] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(`mediaflow_thumb_${assetId}`);
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
+    const saved = localStorage.getItem(`mediaflow_thumb_${assetId}`);
+    if (saved && !thumbSrc) {
+      setThumbSrc(saved);
+    }
+
     if (!videoUrl) return;
     const video = document.createElement('video');
     video.crossOrigin = 'anonymous';
@@ -66,13 +77,19 @@ const VideoThumbnail = ({ videoUrl, filename, assetId }: { videoUrl?: string; fi
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          setThumbSrc(canvas.toDataURL('image/jpeg'));
+          const dataUrl = canvas.toDataURL('image/jpeg');
+          setThumbSrc(dataUrl);
+          try {
+            localStorage.setItem(`mediaflow_thumb_${assetId}`, dataUrl);
+          } catch (e) {
+            // Storage quota fallback
+          }
         }
       } catch (err) {
         // Fallback
       }
     };
-  }, [videoUrl]);
+  }, [videoUrl, assetId]);
 
   if (thumbSrc) {
     return (
