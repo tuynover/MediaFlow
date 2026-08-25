@@ -87,17 +87,46 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let timer: any;
     if (currentUser) {
       setActiveRuns({});
       setPublishOps({});
       setRejectionError({});
       setProjectAssets({});
       fetchProjects();
+
+      // Setup 1-second interval to continuously sync active run status in real time
+      timer = setInterval(() => {
+        fetchActiveRuns();
+      }, 1000);
     }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
   }, [currentUser]);
 
   const isProducer = currentUser?.roles.includes('producer');
   const isReviewer = currentUser?.roles.includes('reviewer');
+
+  const fetchActiveRuns = async () => {
+    if (!currentUser) return;
+    try {
+      const runsRes = await fetch('/api/v1/operator/runs', {
+        headers: {
+          'x-workspace-id': currentUser.workspaceId,
+          'x-user-id': currentUser.id,
+        },
+      });
+      const runsData = await runsRes.json();
+      const runsMap: Record<string, Run> = {};
+      (runsData.runs || []).forEach((r: any) => {
+        runsMap[r.projectId] = r;
+      });
+      setActiveRuns(runsMap);
+    } catch (err) {
+      console.error('Failed to fetch active runs', err);
+    }
+  };
 
   const fetchProjects = async () => {
     if (!currentUser) return;
@@ -129,19 +158,7 @@ export default function App() {
         }
       });
 
-      // Pull active runs for Reviewer Inbox / Producer view
-      const runsRes = await fetch('/api/v1/operator/runs', {
-        headers: {
-          'x-workspace-id': currentUser.workspaceId,
-          'x-user-id': currentUser.id,
-        },
-      });
-      const runsData = await runsRes.json();
-      const runsMap: Record<string, Run> = {};
-      (runsData.runs || []).forEach((r: any) => {
-        runsMap[r.projectId] = r;
-      });
-      setActiveRuns(runsMap);
+      await fetchActiveRuns();
     } catch (err) {
       console.error('Failed to fetch projects', err);
     } finally {
@@ -186,7 +203,11 @@ export default function App() {
       });
       const run = await res.json();
       setActiveRuns((prev) => ({ ...prev, [projectId]: run }));
-      fetchProjects();
+
+      // Fast-poll 3 times over 1.5s to capture immediate progress step transition
+      setTimeout(() => fetchActiveRuns(), 200);
+      setTimeout(() => fetchActiveRuns(), 500);
+      setTimeout(() => fetchActiveRuns(), 1000);
     } catch (err) {
       console.error('Failed to process run', err);
     }
@@ -203,6 +224,7 @@ export default function App() {
       },
       body: JSON.stringify({ note: 'Approved via Reviewer Inbox' }),
     });
+    fetchActiveRuns();
     fetchProjects();
   };
 
@@ -226,6 +248,7 @@ export default function App() {
       },
       body: JSON.stringify({ reason }),
     });
+    fetchActiveRuns();
     fetchProjects();
   };
 
@@ -476,7 +499,7 @@ export default function App() {
                     {activeRun && (
                       <div style={{ marginTop: '15px', background: '#0f172a', padding: '15px', borderRadius: '6px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
-                          <span>Trạng thái Xử lý (Run): <strong style={{ color: '#38bdf8' }}>{activeRun.status}</strong></span>
+                          <span>Trạng thái Xử lý (Run): <strong style={{ color: activeRun.status === 'awaiting_approval' ? '#10b981' : '#38bdf8' }}>{activeRun.status}</strong></span>
                           <span>Bước: <code style={{ color: '#f59e0b' }}>{activeRun.currentStep || 'queued'}</code> ({activeRun.progressPercent}%)</span>
                         </div>
                         <div style={{ background: '#334155', borderRadius: '4px', height: '12px', overflow: 'hidden' }}>
@@ -540,8 +563,8 @@ export default function App() {
 
                         {/* PRODUCER VIEW WHEN AWAITING APPROVAL */}
                         {activeRun.status === 'awaiting_approval' && isProducer && (
-                          <div style={{ marginTop: '10px', fontSize: '13px', color: '#f59e0b', fontWeight: 'bold' }}>
-                            ⏳ Video đã nén và kiểm chứng thành công. Đang chờ Reviewer duyệt! (Vui lòng chọn tài khoản Reviewer từ menu trên để duyệt).
+                          <div style={{ marginTop: '10px', fontSize: '13px', color: '#10b981', fontWeight: 'bold' }}>
+                            ✅ Video đã nén và kiểm chứng thành công (100%). Đang chờ Reviewer duyệt! (Vui lòng chọn tài khoản Reviewer từ menu trên để duyệt).
                           </div>
                         )}
 
