@@ -186,6 +186,14 @@ export class UploadsService {
     UPLOADED_ASSETS.length = 0;
   }
 
+  async getAssetPreviewUrl(workspaceId: string, assetId: string): Promise<string> {
+    const asset = UPLOADED_ASSETS.find((a) => a.id === assetId && a.workspaceId === workspaceId);
+    if (!asset) {
+      return `http://localhost:9000/mediaflow-source/workspaces/${workspaceId}/assets/${assetId}/preview.mp4`;
+    }
+    return this.storageAdapter.getPresignedDownloadUrl(asset.bucket, asset.objectKey);
+  }
+
   async deleteAsset(workspaceId: string, projectId: string, assetId: string) {
     const asset = UPLOADED_ASSETS.find((a) => a.id === assetId && a.workspaceId === workspaceId && a.projectId === projectId);
     if (!asset) {
