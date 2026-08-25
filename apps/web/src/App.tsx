@@ -867,18 +867,19 @@ export default function App() {
 
                                     {/* Spec Section 16.2 Pipeline Timeline Steps */}
                                     <div style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: 'bold', marginBottom: '6px' }}>
-                                      ⏱️ Pipeline Steps Execution Timeline:
+                                      ⏱️ Pipeline Timeline Steps:
                                     </div>
                                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
                                       {[
-                                        { id: 'probe_source', name: '1. Probe Source', percent: 15 },
-                                        { id: 'checksum_sha256', name: '2. Checksum SHA256', percent: 30 },
-                                        { id: 'create_thumbnail', name: '3. Create Thumbnail', percent: 50 },
-                                        { id: 'transcode_720p', name: '4. Transcode 720p', percent: 70 },
-                                        { id: 'transcode_1080p', name: '5. Transcode 1080p', percent: 85 },
-                                        { id: 'verify_outputs', name: '6. Verify Outputs', percent: 100 },
+                                        { id: 'probe_source', name: 'Probe', percent: 15 },
+                                        { id: 'create_thumbnail', name: 'Thumbnail', percent: 30 },
+                                        { id: 'transcode_720p', name: '720p', percent: 50 },
+                                        { id: 'transcode_1080p', name: '1080p', percent: 70 },
+                                        { id: 'verify_outputs', name: 'Verify', percent: 85 },
+                                        { id: 'awaiting_approval', name: 'Approval', percent: 95 },
+                                        { id: 'publish_delivery', name: 'Publish', percent: 100 },
                                       ].map((step) => {
-                                        const isDone = assetRun.progressPercent >= step.percent || assetRun.status === 'awaiting_approval' || assetRun.status === 'approved' || assetRun.status === 'succeeded' || assetRun.status === 'publishing';
+                                        const isDone = assetRun.progressPercent >= step.percent || assetRun.status === 'awaiting_approval' || assetRun.status === 'approved' || assetRun.status === 'succeeded' || assetRun.status === 'published';
                                         const isCurrent = assetRun.currentStep === step.id && !isDone;
                                         return (
                                           <span
@@ -893,7 +894,7 @@ export default function App() {
                                               fontWeight: isDone || isCurrent ? 'bold' : 'normal',
                                             }}
                                           >
-                                            {isDone ? '✓' : isCurrent ? '⏳' : '○'} {step.name}
+                                            {isDone ? '✓' : isCurrent ? `↻ ${step.name} ${assetRun.progressPercent}%` : '○'} {step.name}
                                           </span>
                                         );
                                       })}
