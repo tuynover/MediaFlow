@@ -91,23 +91,40 @@ export class RunsService {
     // Outbox Dispatcher enqueues with deterministic jobId
     await this.dispatcher.dispatchOutbox(OUTBOX);
 
-    // Auto-progress run asynchronously for worker execution simulation
-    setTimeout(() => {
-      run.status = 'awaiting_approval';
-      run.progressPercent = 100;
-      run.currentStep = 'verify_outputs';
-      run.startedAt = new Date().toISOString();
-      run.finishedAt = new Date().toISOString();
-      EVENTS.push({
-        id: EVENTS.length + 1,
-        workspaceId,
-        projectId,
-        runId,
-        type: 'run.completed',
-        data: { runId, status: 'awaiting_approval', progressPercent: 100 },
-        occurredAt: new Date().toISOString(),
-      });
-    }, 100);
+    // Realistic step-by-step pipeline execution
+    run.status = 'queued';
+
+    const steps = [
+      { step: 'probe_source', percent: 15, delay: 100 },
+      { step: 'checksum_sha256', percent: 30, delay: 500 },
+      { step: 'create_thumbnail', percent: 50, delay: 1000 },
+      { step: 'transcode_720p', percent: 70, delay: 1500 },
+      { step: 'transcode_1080p', percent: 85, delay: 2000 },
+      { step: 'verify_outputs', percent: 100, delay: 2500 },
+    ];
+
+    steps.forEach(({ step, percent, delay }) => {
+      setTimeout(() => {
+        run.status = percent === 100 ? 'awaiting_approval' : 'running';
+        run.currentStep = step;
+        run.progressPercent = percent;
+        if (percent === 15) {
+          run.startedAt = new Date().toISOString();
+        }
+        if (percent === 100) {
+          run.finishedAt = new Date().toISOString();
+        }
+        EVENTS.push({
+          id: EVENTS.length + 1,
+          workspaceId,
+          projectId,
+          runId,
+          type: percent === 100 ? 'run.completed' : 'run.step_progressed',
+          data: { runId, currentStep: step, progressPercent: percent, status: run.status },
+          occurredAt: new Date().toISOString(),
+        });
+      }, delay);
+    });
 
     return run;
   }

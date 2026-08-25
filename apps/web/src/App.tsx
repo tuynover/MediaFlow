@@ -747,14 +747,33 @@ export default function App() {
                                       ⏱️ Pipeline Steps Execution Timeline:
                                     </div>
                                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#064e3b', color: '#34d399', fontSize: '11px' }}>✓ 1. Probe Source</span>
-                                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#064e3b', color: '#34d399', fontSize: '11px' }}>✓ 2. Checksum SHA256</span>
-                                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#064e3b', color: '#34d399', fontSize: '11px' }}>✓ 3. Create Thumbnail</span>
-                                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#064e3b', color: '#34d399', fontSize: '11px' }}>✓ 4. Transcode 720p</span>
-                                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#064e3b', color: '#34d399', fontSize: '11px' }}>✓ 5. Transcode 1080p</span>
-                                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: assetRun.progressPercent >= 100 ? '#064e3b' : '#1e293b', color: assetRun.progressPercent >= 100 ? '#34d399' : '#94a3b8', fontSize: '11px' }}>
-                                        {assetRun.progressPercent >= 100 ? '✓' : '○'} 6. Verify Outputs
-                                      </span>
+                                      {[
+                                        { id: 'probe_source', name: '1. Probe Source', percent: 15 },
+                                        { id: 'checksum_sha256', name: '2. Checksum SHA256', percent: 30 },
+                                        { id: 'create_thumbnail', name: '3. Create Thumbnail', percent: 50 },
+                                        { id: 'transcode_720p', name: '4. Transcode 720p', percent: 70 },
+                                        { id: 'transcode_1080p', name: '5. Transcode 1080p', percent: 85 },
+                                        { id: 'verify_outputs', name: '6. Verify Outputs', percent: 100 },
+                                      ].map((step) => {
+                                        const isDone = assetRun.progressPercent >= step.percent || assetRun.status === 'awaiting_approval' || assetRun.status === 'approved' || assetRun.status === 'succeeded' || assetRun.status === 'publishing';
+                                        const isCurrent = assetRun.currentStep === step.id && !isDone;
+                                        return (
+                                          <span
+                                            key={step.id}
+                                            style={{
+                                              padding: '3px 8px',
+                                              borderRadius: '4px',
+                                              background: isDone ? '#064e3b' : isCurrent ? '#1e3a8a' : '#1e293b',
+                                              color: isDone ? '#34d399' : isCurrent ? '#60a5fa' : '#94a3b8',
+                                              fontSize: '11px',
+                                              border: isCurrent ? '1px solid #3b82f6' : '1px solid transparent',
+                                              fontWeight: isDone || isCurrent ? 'bold' : 'normal',
+                                            }}
+                                          >
+                                            {isDone ? '✓' : isCurrent ? '⏳' : '○'} {step.name}
+                                          </span>
+                                        );
+                                      })}
                                     </div>
 
                                     {/* PERMANENT REJECTION BADGE */}
