@@ -32,8 +32,20 @@ export interface UploadSession {
   parts: { partNumber: number; etag: string; sizeBytes: number }[];
 }
 
-// In-Memory Storage for Baseline (Will connect to Drizzle DB in M3)
+export interface UploadedAsset {
+  id: string;
+  projectId: string;
+  workspaceId: string;
+  originalFilename: string;
+  bucket: string;
+  objectKey: string;
+  sizeBytes: number;
+  completedAt: string;
+}
+
+// In-Memory Storage for Baseline
 const UPLOAD_SESSIONS: UploadSession[] = [];
+const UPLOADED_ASSETS: UploadedAsset[] = [];
 
 export class UploadsService {
   private storageAdapter: MinioObjectStorageAdapter;
@@ -137,7 +149,21 @@ export class UploadsService {
 
     session.status = 'completed';
     session.completedAt = new Date().toISOString();
-    return { session, assetId: crypto.randomUUID() };
+    const assetId = crypto.randomUUID();
+
+    // Persist uploaded asset in memory list
+    UPLOADED_ASSETS.push({
+      id: assetId,
+      projectId: session.projectId,
+      workspaceId: session.workspaceId,
+      originalFilename: session.originalFilename,
+      bucket: session.bucket,
+      objectKey: session.objectKey,
+      sizeBytes: session.declaredSizeBytes,
+      completedAt: session.completedAt,
+    });
+
+    return { session, assetId };
   }
 
   async abortUpload(workspaceId: string, uploadId: string) {
@@ -149,5 +175,9 @@ export class UploadsService {
     }
     session.status = 'aborted';
     return { success: true };
+  }
+
+  async getProjectAssets(workspaceId: string, projectId: string): Promise<UploadedAsset[]> {
+    return UPLOADED_ASSETS.filter((a) => a.workspaceId === workspaceId && a.projectId === projectId);
   }
 }

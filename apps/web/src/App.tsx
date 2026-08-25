@@ -17,6 +17,17 @@ interface Project {
   createdAt: string;
 }
 
+interface UploadedAsset {
+  id: string;
+  projectId: string;
+  workspaceId: string;
+  originalFilename: string;
+  bucket: string;
+  objectKey: string;
+  sizeBytes: number;
+  completedAt: string;
+}
+
 interface Run {
   id: string;
   projectId: string;
@@ -36,6 +47,7 @@ interface PublishOp {
 export default function App() {
   const [currentUser, setCurrentUser] = useState<SeedUser | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [projectAssets, setProjectAssets] = useState<Record<string, UploadedAsset[]>>({});
   const [newProjectName, setNewProjectName] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeRuns, setActiveRuns] = useState<Record<string, Run>>({});
@@ -76,10 +88,10 @@ export default function App() {
 
   useEffect(() => {
     if (currentUser) {
-      // Reset state when switching accounts or tenants
       setActiveRuns({});
       setPublishOps({});
       setRejectionError({});
+      setProjectAssets({});
       fetchProjects();
     }
   }, [currentUser]);
@@ -98,7 +110,24 @@ export default function App() {
         },
       });
       const data = await res.json();
-      setProjects(data.projects || []);
+      const projList: Project[] = data.projects || [];
+      setProjects(projList);
+
+      // Fetch uploaded assets for each project
+      projList.forEach(async (p) => {
+        try {
+          const assetsRes = await fetch(`/api/v1/projects/${p.id}/assets`, {
+            headers: {
+              'x-workspace-id': currentUser.workspaceId,
+              'x-user-id': currentUser.id,
+            },
+          });
+          const assetsData = await assetsRes.json();
+          setProjectAssets((prev) => ({ ...prev, [p.id]: assetsData.assets || [] }));
+        } catch (assetErr) {
+          console.error('Failed to fetch project assets', assetErr);
+        }
+      });
 
       // Pull active runs for Reviewer Inbox / Producer view
       const runsRes = await fetch('/api/v1/operator/runs', {
@@ -347,6 +376,7 @@ export default function App() {
               {projects.map((p) => {
                 const activeRun = activeRuns[p.id];
                 const pubOp = activeRun ? publishOps[activeRun.id] : null;
+                const assets = projectAssets[p.id] || [];
 
                 return (
                   <div
@@ -394,6 +424,31 @@ export default function App() {
                             fetchProjects();
                           }}
                         />
+                      </div>
+                    )}
+
+                    {/* PERMANENT UPLOADED ASSETS LIST IN MINIO */}
+                    {assets.length > 0 && (
+                      <div style={{ marginTop: '15px', background: '#0f172a', padding: '12px 15px', borderRadius: '6px', border: '1px solid #1e293b' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#38bdf8', marginBottom: '8px' }}>
+                          📦 Danh sách Video Assets đã nạp lên MinIO Source Bucket ({assets.length}):
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {assets.map((asset) => (
+                            <div key={asset.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1e293b', padding: '8px 12px', borderRadius: '4px', fontSize: '12px' }}>
+                              <div>
+                                <strong style={{ color: '#ecfdf5' }}>📹 {asset.originalFilename}</strong>
+                                <span style={{ color: '#94a3b8', marginLeft: '10px' }}>({(asset.sizeBytes / (1024 * 1024)).toFixed(2)} MB)</span>
+                                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                                  Bucket: <code style={{ color: '#f59e0b' }}>{asset.bucket}</code> | Asset ID: <code>{asset.id}</code>
+                                </div>
+                              </div>
+                              <div style={{ color: '#34d399', fontWeight: 'bold', fontSize: '11px' }}>
+                                ✅ Completed ({new Date(asset.completedAt).toLocaleTimeString('vi-VN')})
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
 

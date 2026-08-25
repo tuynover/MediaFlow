@@ -14,6 +14,12 @@ export class UploadsController {
     return this.uploadsService.initiateUpload(workspaceId, projectId, body.filename, body.sizeBytes, body.mediaType || 'video/mp4');
   }
 
+  @Get('projects/:projectId/assets')
+  async getProjectAssets(@Req() request: any, @Param('projectId') projectId: string) {
+    const workspaceId = request.headers['x-workspace-id'] || 'a0000000-0000-7000-a000-000000000001';
+    return { assets: await this.uploadsService.getProjectAssets(workspaceId, projectId) };
+  }
+
   @Get('uploads/:uploadId')
   async getUpload(@Req() request: any, @Param('uploadId') uploadId: string) {
     const workspaceId = request.headers['x-workspace-id'] || 'a0000000-0000-7000-a000-000000000001';
