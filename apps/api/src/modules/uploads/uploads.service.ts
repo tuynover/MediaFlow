@@ -65,6 +65,22 @@ export class UploadsService {
     sizeBytes: number,
     mediaType: string
   ): Promise<UploadSession> {
+    const envMaxGb = parseFloat(process.env.MAX_FILE_SIZE_GB || '5');
+    const maxFileSizeBytes = (isNaN(envMaxGb) ? 5 : envMaxGb) * 1024 * 1024 * 1024;
+
+    if (sizeBytes > maxFileSizeBytes) {
+      throw new BadRequestException({
+        error: {
+          code: 'FILE_TOO_LARGE',
+          message: `File size exceeds maximum allowed limit of ${envMaxGb} GiB`,
+        },
+      });
+    }
+
+    const envPartMb = parseInt(process.env.DEFAULT_PART_SIZE_MB || '16', 10);
+    const partSizeMb = Math.max(8, Math.min(64, isNaN(envPartMb) ? 16 : envPartMb));
+    const partSizeBytes = partSizeMb * 1024 * 1024;
+
     const uploadId = crypto.randomUUID();
     const objectKey = `workspaces/${workspaceId}/projects/${projectId}/uploads/${uploadId}/${crypto.randomUUID()}`;
     const bucket = process.env.MINIO_SOURCE_BUCKET || 'mediaflow-source';
@@ -87,7 +103,7 @@ export class UploadsService {
       originalFilename: filename,
       declaredMediaType: mediaType,
       declaredSizeBytes: sizeBytes,
-      partSizeBytes: 16777216, // 16MB
+      partSizeBytes,
       status: 'initiated',
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
       completedAt: null,
