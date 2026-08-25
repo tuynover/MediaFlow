@@ -75,7 +75,7 @@ export default function App() {
 
   useEffect(() => {
     if (currentUser) {
-      // Reset active run/op states when switching tenants or roles to avoid state leaks
+      // Reset state when switching accounts or tenants
       setActiveRuns({});
       setPublishOps({});
       setRejectionError({});
@@ -98,6 +98,20 @@ export default function App() {
       });
       const data = await res.json();
       setProjects(data.projects || []);
+
+      // Pull active runs for Reviewer Inbox / Producer view
+      const runsRes = await fetch('/api/v1/operator/runs', {
+        headers: {
+          'x-workspace-id': currentUser.workspaceId,
+          'x-user-id': currentUser.id,
+        },
+      });
+      const runsData = await runsRes.json();
+      const runsMap: Record<string, Run> = {};
+      (runsData.runs || []).forEach((r: any) => {
+        runsMap[r.projectId] = r;
+      });
+      setActiveRuns(runsMap);
     } catch (err) {
       console.error('Failed to fetch projects', err);
     } finally {
@@ -160,11 +174,6 @@ export default function App() {
       body: JSON.stringify({ note: 'Approved via Reviewer Inbox' }),
     });
     fetchProjects();
-    setActiveRuns((prev) => {
-      const copy = { ...prev };
-      if (copy[projectId]) copy[projectId].status = 'approved';
-      return copy;
-    });
   };
 
   const handleReject = async (runId: string, projectId: string) => {
@@ -188,11 +197,6 @@ export default function App() {
       body: JSON.stringify({ reason }),
     });
     fetchProjects();
-    setActiveRuns((prev) => {
-      const copy = { ...prev };
-      if (copy[projectId]) copy[projectId].status = 'rejected';
-      return copy;
-    });
   };
 
   const handlePublish = async (runId: string, simulateLoss = false) => {
