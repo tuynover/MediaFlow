@@ -41,6 +41,27 @@ describe('Comprehensive Edge Cases & Boundary Conditions Suite (MF-105, MF-205, 
     expect(signRes.url).toBeDefined();
   });
 
+  it('Edge Case 1b: Should handle 3.71GB large video file "Meet - tfv-eyif-pek - Google Chrome 2026-08-05 20-13-58.mp4" with 232 parts without precision loss', async () => {
+    const userFilename = 'Meet - tfv-eyif-pek - Google Chrome 2026-08-05 20-13-58.mp4';
+    const largeSizeBytes = 3887784926; // 3.71 GB
+
+    const session = await uploadsService.initiateUpload(
+      WORKSPACE_ID,
+      PROJECT_ID,
+      userFilename,
+      largeSizeBytes,
+      'video/mp4'
+    );
+
+    expect(session.originalFilename).toBe(userFilename);
+    expect(session.declaredSizeBytes).toBe(largeSizeBytes);
+
+    // Sign part 232 URL
+    const signRes = await uploadsService.signPartUrl(WORKSPACE_ID, session.id, 232);
+    expect(signRes.url).toBeDefined();
+    expect(signRes.url).toContain('partNumber=232');
+  });
+
   it('Edge Case 2: Should reject signPartUrl on completed upload sessions', async () => {
     const session = await uploadsService.initiateUpload(WORKSPACE_ID, PROJECT_ID, 'test.mp4', 10485760, 'video/mp4');
 
