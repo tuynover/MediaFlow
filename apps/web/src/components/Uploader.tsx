@@ -59,6 +59,9 @@ export function Uploader({ projectId, workspaceId, userId, onUploadComplete }: U
       setFile(selectedFile);
       const url = URL.createObjectURL(selectedFile);
       setPreviewUrl(url);
+      // Clear old resumable session box when user selects a new file
+      localStorage.removeItem(storageKey);
+      setResumableSession(null);
     }
   };
 

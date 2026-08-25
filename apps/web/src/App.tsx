@@ -92,20 +92,35 @@ const VideoThumbnail = ({ videoUrl }: { videoUrl?: string }) => {
   return (
     <div
       style={{
+        position: 'relative',
         width: '120px',
         height: '68px',
         borderRadius: '6px',
         border: '1px solid #38bdf8',
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+        background: 'linear-gradient(135deg, #090d16 0%, #1e293b 100%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#38bdf8',
+        overflow: 'hidden',
       }}
     >
-      <div style={{ fontSize: '18px' }}>🖼️</div>
-      <span style={{ fontSize: '9px', color: '#94a3b8', marginTop: '2px' }}>thumb_poster.jpg</span>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+        <line x1="7" y1="2" x2="7" y2="22"></line>
+        <line x1="17" y1="2" x2="17" y2="22"></line>
+        <line x1="2" y1="12" x2="22" y2="12"></line>
+        <line x1="2" y1="7" x2="7" y2="7"></line>
+        <line x1="2" y1="17" x2="7" y2="17"></line>
+        <line x1="17" y1="17" x2="22" y2="17"></line>
+        <line x1="17" y1="7" x2="22" y2="7"></line>
+      </svg>
+      <span style={{ fontSize: '9px', color: '#38bdf8', fontWeight: 'bold', marginTop: '4px' }}>
+        thumb_poster.jpg
+      </span>
+      <span style={{ position: 'absolute', bottom: '2px', right: '4px', background: 'rgba(0,0,0,0.85)', color: '#34d399', fontSize: '8px', padding: '1px 3px', borderRadius: '2px', fontWeight: 'bold' }}>
+        1920x1080
+      </span>
     </div>
   );
 };
