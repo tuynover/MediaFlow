@@ -20,6 +20,12 @@ export class UploadsController {
     return { assets: await this.uploadsService.getProjectAssets(workspaceId, projectId) };
   }
 
+  @Delete('projects/:projectId/assets/:assetId')
+  async deleteProjectAsset(@Req() request: any, @Param('projectId') projectId: string, @Param('assetId') assetId: string) {
+    const workspaceId = request.headers['x-workspace-id'] || 'a0000000-0000-7000-a000-000000000001';
+    return this.uploadsService.deleteAsset(workspaceId, projectId, assetId);
+  }
+
   @Get('uploads/:uploadId')
   async getUpload(@Req() request: any, @Param('uploadId') uploadId: string) {
     const workspaceId = request.headers['x-workspace-id'] || 'a0000000-0000-7000-a000-000000000001';

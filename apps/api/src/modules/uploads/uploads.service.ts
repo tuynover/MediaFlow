@@ -43,9 +43,9 @@ export interface UploadedAsset {
   completedAt: string;
 }
 
-// In-Memory Storage for Baseline
+// Storage Store for Baseline
 const UPLOAD_SESSIONS: UploadSession[] = [];
-const UPLOADED_ASSETS: UploadedAsset[] = [];
+let UPLOADED_ASSETS: UploadedAsset[] = [];
 
 export class UploadsService {
   private storageAdapter: MinioObjectStorageAdapter;
@@ -151,7 +151,6 @@ export class UploadsService {
     session.completedAt = new Date().toISOString();
     const assetId = crypto.randomUUID();
 
-    // Persist uploaded asset in memory list
     UPLOADED_ASSETS.push({
       id: assetId,
       projectId: session.projectId,
@@ -179,5 +178,14 @@ export class UploadsService {
 
   async getProjectAssets(workspaceId: string, projectId: string): Promise<UploadedAsset[]> {
     return UPLOADED_ASSETS.filter((a) => a.workspaceId === workspaceId && a.projectId === projectId);
+  }
+
+  async deleteAsset(workspaceId: string, projectId: string, assetId: string) {
+    const asset = UPLOADED_ASSETS.find((a) => a.id === assetId && a.workspaceId === workspaceId && a.projectId === projectId);
+    if (!asset) {
+      throw new NotFoundException({ error: { code: 'ASSET_NOT_FOUND', message: 'Asset not found' } });
+    }
+    UPLOADED_ASSETS = UPLOADED_ASSETS.filter((a) => a.id !== assetId);
+    return { success: true };
   }
 }

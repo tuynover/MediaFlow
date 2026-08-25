@@ -35,6 +35,7 @@ interface Run {
   status: string;
   progressPercent: number;
   currentStep: string | null;
+  reason?: string;
 }
 
 interface PublishOp {
@@ -56,6 +57,7 @@ export default function App() {
   const [rejectionReason, setRejectionReason] = useState<Record<string, string>>({});
   const [rejectionError, setRejectionError] = useState<Record<string, string>>({});
   const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
+  const [expandedReview, setExpandedReview] = useState<Record<string, boolean>>({});
 
   const seedUsers: SeedUser[] = [
     {
@@ -204,11 +206,9 @@ export default function App() {
         body: JSON.stringify({ sourceAssetId: asset.id }),
       });
       const run = await res.json();
-      run.sourceAssetFilename = asset.originalFilename;
 
       setProjectRuns((prev) => {
         const existing = prev[projectId] || [];
-        // Filter out any existing run for the same asset or append new run
         const filtered = existing.filter((r) => r.sourceAssetId !== asset.id);
         return { ...prev, [projectId]: [...filtered, run] };
       });
@@ -218,6 +218,22 @@ export default function App() {
       setTimeout(() => fetchActiveRuns(), 1000);
     } catch (err) {
       console.error('Failed to process run', err);
+    }
+  };
+
+  const handleDeleteAsset = async (projectId: string, assetId: string) => {
+    if (!currentUser || !isProducer) return;
+    try {
+      await fetch(`/api/v1/projects/${projectId}/assets/${assetId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-workspace-id': currentUser.workspaceId,
+          'x-user-id': currentUser.id,
+        },
+      });
+      fetchProjects();
+    } catch (err) {
+      console.error('Failed to delete asset', err);
     }
   };
 
@@ -255,6 +271,14 @@ export default function App() {
       },
       body: JSON.stringify({ reason }),
     });
+
+    // Update local run status persistently to 'rejected'
+    setProjectRuns((prev) => {
+      const runs = prev[projectId] || [];
+      const updated = runs.map((r) => (r.id === runId ? { ...r, status: 'rejected', reason } : r));
+      return { ...prev, [projectId]: updated };
+    });
+
     fetchActiveRuns();
     fetchProjects();
   };
@@ -382,7 +406,7 @@ export default function App() {
           <section style={{ background: '#064e3b', padding: '15px 20px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #10b981' }}>
             <h2 style={{ fontSize: '18px', marginTop: 0, color: '#ecfdf5' }}>📥 [Reviewer Inbox] Danh sách Bản xem trước chờ Phê duyệt</h2>
             <p style={{ margin: 0, fontSize: '13px', color: '#a7f3d0' }}>
-              Bạn đang ở giao diện Reviewer. Phát và kiểm tra trực tiếp video đã được transcode dưới đây trước khi bấm <strong>Approve (Chấp nhận)</strong> hoặc <strong>Reject (Từ chối)</strong>.
+              Bạn đang ở giao diện Reviewer. Bấm nút <strong>👁️ Xem video & Phê duyệt</strong> bên dưới từng video để mở khung phát video và phê duyệt.
             </p>
           </section>
         )}
@@ -456,7 +480,7 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* PERMANENT UPLOADED ASSETS LIST IN MINIO WITH DEDICATED PROCESS BUTTON PER VIDEO */}
+                    {/* PERMANENT UPLOADED ASSETS LIST IN MINIO WITH DELETE & COLLAPSIBLE REVIEW */}
                     {assets.length > 0 && (
                       <div style={{ marginTop: '15px', background: '#0f172a', padding: '15px', borderRadius: '6px', border: '1px solid #1e293b' }}>
                         <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#38bdf8', marginBottom: '10px' }}>
@@ -466,6 +490,7 @@ export default function App() {
                           {assets.map((asset) => {
                             const assetRun = runs.find((r) => r.sourceAssetId === asset.id || runs.length === 1);
                             const pubOp = assetRun ? publishOps[assetRun.id] : null;
+                            const isExpanded = assetRun ? expandedReview[assetRun.id] : false;
 
                             return (
                               <div key={asset.id} style={{ background: '#1e293b', padding: '12px 15px', borderRadius: '6px', border: '1px solid #334155' }}>
@@ -481,6 +506,27 @@ export default function App() {
                                     <span style={{ color: '#34d399', fontWeight: 'bold', fontSize: '11px' }}>
                                       ✅ Completed ({new Date(asset.completedAt).toLocaleTimeString('vi-VN')})
                                     </span>
+
+                                    {/* PRODUCER: Delete Asset Button */}
+                                    {isProducer && (
+                                      <button
+                                        onClick={() => handleDeleteAsset(p.id, asset.id)}
+                                        style={{
+                                          padding: '5px 10px',
+                                          background: '#7f1d1d',
+                                          color: '#fca5a5',
+                                          border: '1px solid #991b1b',
+                                          borderRadius: '6px',
+                                          cursor: 'pointer',
+                                          fontWeight: 'bold',
+                                          fontSize: '12px',
+                                        }}
+                                      >
+                                        🗑️ Xóa Video
+                                      </button>
+                                    )}
+
+                                    {/* PRODUCER: Process Run Button */}
                                     {isProducer && (
                                       <button
                                         onClick={() => handleProcessRunForAsset(p.id, asset)}
@@ -498,23 +544,59 @@ export default function App() {
                                         ⚡ Khởi chạy Xử lý Video Này
                                       </button>
                                     )}
+
+                                    {/* REVIEWER: Toggle Video Preview Button */}
+                                    {isReviewer && assetRun && assetRun.status === 'awaiting_approval' && (
+                                      <button
+                                        onClick={() => setExpandedReview({ ...expandedReview, [assetRun.id]: !isExpanded })}
+                                        style={{
+                                          padding: '6px 12px',
+                                          background: isExpanded ? '#0284c7' : '#059669',
+                                          color: '#fff',
+                                          border: 'none',
+                                          borderRadius: '6px',
+                                          cursor: 'pointer',
+                                          fontWeight: 'bold',
+                                          fontSize: '12px',
+                                        }}
+                                      >
+                                        {isExpanded ? '🙈 Ẩn Khung Duyệt' : '👁️ Xem Video & Phê Duyệt'}
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
 
-                                {/* INDIVIDUAL PROCESS PROGRESS BAR FOR THIS SPECIFIC VIDEO */}
+                                {/* PROCESS RUN PROGRESS BAR & REJECTION BADGE */}
                                 {assetRun && (
                                   <div style={{ marginTop: '12px', background: '#0f172a', padding: '12px', borderRadius: '6px', border: '1px solid #334155' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
-                                      <span>Trạng thái Xử lý (Run): <strong style={{ color: assetRun.status === 'awaiting_approval' ? '#10b981' : '#38bdf8' }}>{assetRun.status}</strong></span>
+                                      <span>Trạng thái Xử lý (Run): <strong style={{ color: assetRun.status === 'rejected' ? '#ef4444' : assetRun.status === 'awaiting_approval' ? '#10b981' : '#38bdf8' }}>{assetRun.status.toUpperCase()}</strong></span>
                                       <span>Bước: <code style={{ color: '#f59e0b' }}>{assetRun.currentStep || 'queued'}</code> ({assetRun.progressPercent}%)</span>
                                     </div>
                                     <div style={{ background: '#334155', borderRadius: '4px', height: '10px', overflow: 'hidden' }}>
-                                      <div style={{ width: `${assetRun.progressPercent}%`, background: '#10b981', height: '100%', transition: 'width 0.4s ease' }} />
+                                      <div style={{ width: `${assetRun.progressPercent}%`, background: assetRun.status === 'rejected' ? '#ef4444' : '#10b981', height: '100%', transition: 'width 0.4s ease' }} />
                                     </div>
 
-                                    {/* REVIEWER ONLY PANEL PER VIDEO */}
-                                    {assetRun.status === 'awaiting_approval' && isReviewer && (
-                                      <div style={{ marginTop: '12px', background: '#1e293b', padding: '10px', borderRadius: '6px', border: '1px solid #059669' }}>
+                                    {/* PERMANENT REJECTION BADGE */}
+                                    {assetRun.status === 'rejected' && (
+                                      <div style={{ marginTop: '10px', padding: '10px', background: '#7f1d1d', borderRadius: '6px', border: '1px solid #ef4444' }}>
+                                        <div style={{ fontSize: '13px', color: '#fecaca', fontWeight: 'bold' }}>
+                                          ❌ Video đã bị Reviewer từ chối (REJECTED)!
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: '#fca5a5', marginTop: '4px' }}>
+                                          Lý do từ chối: <em>"{assetRun.reason || rejectionReason[assetRun.id] || 'Chất lượng video chưa đạt yêu cầu brand.'}"</em>
+                                        </div>
+                                        {isProducer && (
+                                          <div style={{ marginTop: '8px', fontSize: '12px', color: '#cbd5e1' }}>
+                                            💡 Bạn có thể bấm nút <strong>🗑️ Xóa Video</strong> ở trên để nạp bản cắt mới hoặc bấm <strong>⚡ Khởi chạy Xử lý Video Này</strong> để chạy lại!
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {/* COLLAPSIBLE REVIEWER PANEL (Shown only when Reviewer clicks 👁️ Xem video & Phê duyệt) */}
+                                    {assetRun.status === 'awaiting_approval' && isReviewer && isExpanded && (
+                                      <div style={{ marginTop: '12px', background: '#1e293b', padding: '12px', borderRadius: '6px', border: '1px solid #059669' }}>
                                         <div style={{ fontWeight: 'bold', color: '#10b981', marginBottom: '8px', fontSize: '13px' }}>
                                           📥 Reviewer Approval Control Panel ({asset.originalFilename}):
                                         </div>
@@ -523,7 +605,7 @@ export default function App() {
                                           <video
                                             controls
                                             src={videoUrls[p.id] || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'}
-                                            style={{ width: '100%', maxHeight: '220px', borderRadius: '4px', backgroundColor: '#000' }}
+                                            style={{ width: '100%', maxHeight: '240px', borderRadius: '4px', backgroundColor: '#000' }}
                                           />
                                         </div>
 
@@ -538,7 +620,7 @@ export default function App() {
                                             id={`reject-reason-${assetRun.id}`}
                                             name={`reject_reason_${assetRun.id}`}
                                             type="text"
-                                            placeholder="Nhập lý do từ chối (10-1000 ký tự)..."
+                                            placeholder="Nhập lý do từ chối (bắt buộc từ 10 đến 1000 ký tự)..."
                                             value={rejectionReason[assetRun.id] || ''}
                                             onChange={(e) => setRejectionReason({ ...rejectionReason, [assetRun.id]: e.target.value })}
                                             style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontSize: '12px' }}
@@ -550,6 +632,11 @@ export default function App() {
                                             ❌ Reject (Từ chối)
                                           </button>
                                         </div>
+                                        {rejectionError[assetRun.id] && (
+                                          <div style={{ marginTop: '8px', fontSize: '12px', color: '#ef4444', fontWeight: 'bold' }}>
+                                            {rejectionError[assetRun.id]}
+                                          </div>
+                                        )}
                                       </div>
                                     )}
 
