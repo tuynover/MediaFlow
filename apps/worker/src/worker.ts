@@ -197,8 +197,8 @@ if (process.env.NODE_ENV !== 'test') {
           const result = await pipeline.processRun({
             runId: job.data.runId,
             workspaceId: job.data.workspaceId,
-            projectId: job.data.projectId,
-            sourcePath: job.data.sourcePath || job.data.objectKey,
+            projectId: job.data.projectId || '',
+            sourcePath: job.data.sourcePath || job.data.objectKey || '',
           });
           return result;
         } finally {

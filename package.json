@@ -7,7 +7,7 @@
     "build": "pnpm -r run build",
     "dev": "pnpm -r --parallel run dev",
     "lint": "pnpm -r run lint || true",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p apps/worker/tsconfig.json --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run packages/",
     "test:integration": "vitest run test/integration/",

@@ -5,6 +5,10 @@ export interface QueueJobPayload {
   schemaVersion: number;
   workspaceId: string;
   runId: string;
+  projectId?: string;
+  sourcePath?: string;
+  objectKey?: string;
+  fl02Threshold?: number;
 }
 
 export const QUEUE_NAMES = {
